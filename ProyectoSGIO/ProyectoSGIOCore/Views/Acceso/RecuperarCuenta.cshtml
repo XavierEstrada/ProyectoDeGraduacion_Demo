@@ -1,0 +1,26 @@
+﻿@model ProyectoSGIOCore.ViewModels.UsuarioVM
+@{
+    ViewBag.Title = "Recuperar Contraseña";
+    Layout = "~/Views/Shared/_LayoutExterno.cshtml";
+}
+
+<form asp-controller="Acceso" asp-action="RecuperarCuenta" method="post" class="form">
+    <p class="title">Recuperar contraseña</p>
+    <p class="message">Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</p>
+
+    <label>
+        <input asp-for="Correo" class="input" required />
+        <span>Correo</span>
+    </label>
+
+    <button class="submit">Enviar enlace de restablecimiento</button>
+
+    <p class="signin">¿Recordaste tu contraseña? <a asp-controller="Acceso" asp-action="IniciarSesion">Inicia sesión</a></p>
+</form>
+
+@if (ViewData["Mensaje"] != null)
+{
+    <div class="alert alert-danger text-center" role="alert">
+        @ViewData["Mensaje"]
+    </div>
+}

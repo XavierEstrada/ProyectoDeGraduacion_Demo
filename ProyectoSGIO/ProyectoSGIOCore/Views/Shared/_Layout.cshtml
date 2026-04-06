@@ -1,0 +1,178 @@
+﻿@using System.Security.Claims;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGIO</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700,800,900" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="~/css/styles.css" rel="stylesheet" />
+
+</head>
+<body>
+
+    <div class="wrapper d-flex align-items-stretch">
+
+        <nav id="sidebar" class="active">
+            <h1><a asp-controller="Home" asp-action="Index" class="logo">CP</a></h1>
+
+            <ul class="list-unstyled components mb-5">
+
+                @if (User.IsInRole("Administrador"))
+                {
+                    <li class="@(ViewContext.RouteData.Values["Controller"].ToString() == "Administrativo" ? "active" : "")">
+                        <a href="#" class="has-submenu">
+                            <span class="bi bi-people-fill"></span> Usuarios
+                        </a>
+                        <ul class="submenu">
+                            <li><a asp-controller="Administrativo" asp-action="VisualizarUsuarios">Ver Usuarios</a></li>
+                            <li><a asp-controller="Administrativo" asp-action="CrearUsuario">Crear Usuario</a></li>
+                        </ul>
+                    </li>
+                }
+
+                @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor") || User.IsInRole("Usuario"))
+                {
+                    <li class="@(ViewContext.RouteData.Values["Controller"].ToString() == "Proyecto" ? "active" : "")">
+                        <a href="#" class="has-submenu">
+                            <span class="bi bi-house-gear"></span> Proyectos
+                        </a>
+                        <ul class="submenu">
+                            <li><a asp-controller="Proyecto" asp-action="Proyectos">Ver Proyectos</a></li>
+                            @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
+                            {
+                                <li><a asp-controller="Proyecto" asp-action="CrearProyecto">Crear Proyecto</a></li>
+                            }
+                        </ul>
+                    </li>
+                }
+                @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
+                {
+                    <li class="@(ViewContext.RouteData.Values["Controller"].ToString() == "Facturas" ? "active" : "")">
+                        <a href="#" class="has-submenu">
+                            <span class="bi bi-calculator"></span> Facturas
+                        </a>
+                        <ul class="submenu">
+                            <li><a asp-controller="Facturas" asp-action="VisualizarFacturas">Ver Facturas</a></li>
+                            <li><a asp-controller="Facturas" asp-action="RegistroFactura">Registrar Factura</a></li>
+                            <li><a asp-controller="CierresFinancieros" asp-action="VisualizarCierres">Cierres Anuales</a></li>
+                            <li><a asp-controller="CierresFinancieros" asp-action="VisualizarCierresMensuales">Cierres Mensuales</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="@(ViewContext.RouteData.Values["Controller"].ToString() == "Inventario" ? "active" : "")">
+                        <a asp-controller="Inventario" asp-action="VisualizarInventario">
+                            <span class="bi bi-boxes"></span> Inventario
+                        </a>
+                    </li>
+
+                    <li class="@(ViewContext.RouteData.Values["Controller"].ToString() == "Proveedores" ? "active" : "")">
+                        <a asp-controller="Proveedores" asp-action="VisualizarProveedores">
+                            <span class="bi bi-box-seam"></span> Proveedores
+                        </a>
+                    </li>
+
+                    <li class="@(ViewContext.RouteData.Values["Controller"].ToString() == "Empleado" ? "active" : "")">
+                        <a asp-controller="Empleado" asp-action="VisualizarEmpleados">
+                            <span class="bi bi-person-fill-gear"></span> Empleados
+                        </a>
+                    </li>
+                }
+
+                <li>
+                    <a href="#">
+                        <span class="bi bi-envelope-at-fill"></span> Contactos
+                    </a>
+                </li>
+            </ul>
+
+            <div class="footer">
+                <p>
+                    Copyright &copy;<script>document.write(new Date().getFullYear());</script> SGIO - Sistema de Gestión Integral de Obras
+                </p>
+            </div>
+        </nav>
+
+        <!-- Page Content  -->
+        <div id="content" class="p-4 p-md-5">
+
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+
+                    <button type="button" id="sidebarCollapse" class="btn btn-primary">
+                        <i class="fa fa-bars"></i>
+                        <span class="sr-only">Toggle Menu</span>
+                    </button>
+
+                    <button class="btn btn-dark d-inline-block d-lg-none ml-auto" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
+                        <ul class="nav navbar-nav ms-auto">
+
+                            <li class="nav-item active">
+                                <a class="nav-link" asp-controller="Home" asp-action="Index">Inicio</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Quienes somos</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Portafolio</a>
+                            </li>
+
+                            <!-- Seccion del inicio de sesion para el usuario -->
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                <!-- Mostrar el nombre del usuario si está autenticado -->
+                                <li class="nav-item dropdown d-flex align-items-center">
+
+                                    <!-- Nombre del usuario -->
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        @User.Claims.Where(c => c.Type == ClaimTypes.Name).Select(c => c.Value).SingleOrDefault()
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" asp-controller="Acceso" asp-action="VerPerfil">Ver perfil</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Acceso" asp-action="ActivarTwoFA">Autenticación en dos pasos</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" asp-controller="Acceso" asp-action="CerrarSesion">Cerrar sesión</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            else
+                            {
+                                <!-- Mostrar el enlace de Iniciar Sesión si no está autenticado -->
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Acceso" asp-action="IniciarSesion">Iniciar sesión</a>
+                                </li>
+                            }
+
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- RenderBody -->
+            <div class="main-content">
+                @RenderBody()
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+
+    <script src="~/js/menu.js"></script>
+    <script src="~/js/funciones.js"></script>
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>

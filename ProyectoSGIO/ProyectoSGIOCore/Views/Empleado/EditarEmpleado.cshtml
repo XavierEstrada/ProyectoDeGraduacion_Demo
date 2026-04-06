@@ -1,0 +1,36 @@
+﻿@model ProyectoSGIOCore.Models.Empleado
+@{
+    ViewBag.Title = "Editar Empleado";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container my-4">
+    <div class="form-container">
+        <h2 class="text-center mb-4">Crear nuevo empleado</h2>
+
+        <form asp-action="EditarEmpleado" asp-controller="Empleado" method="post">
+            <input type="hidden" asp-for="IdEmpleado" />
+
+            <!-- Nombre -->
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre</label>
+                <input type="text" asp-for="Nombre" class="form-control" placeholder="Ingrese el nombre" required>
+            </div>
+
+            <!-- Apellidos -->
+            <div class="mb-3">
+                <label for="apellido" class="form-label">Apellido(s)</label>
+                <input type="text" asp-for="Apellido" class="form-control" placeholder="Ingrese el/los apellido(s)" required>
+            </div>
+
+            <!-- Correo Electrónico -->
+            <div class="mb-3">
+                <label for="correo" class="form-label">Correo Electrónico</label>
+                <input type="email" asp-for="Correo" class="form-control" placeholder="ejemplo@correo.com" required>
+            </div>
+
+            <!-- Botón de Envío -->
+            <button type="submit" class="btn btn-primary w-100">Editar Empleado</button>
+        </form>
+    </div>
+</div>

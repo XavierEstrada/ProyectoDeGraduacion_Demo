@@ -1,0 +1,40 @@
+﻿
+@{
+    ViewBag.Title = "RegistroActividades";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Registro de Actividades</h2>
+
+    <!-- Tabla de Registro de Actividades -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Usuario Afectado</th>
+                <th>Acción</th>
+                <th>Fecha</th>
+                <th>Motivo</th>
+                <th>Realizado por</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Juan Pérez</td>
+                <td>Bloqueado</td>
+                <td>2024-09-01</td>
+                <td>Acceso indebido a secciones restringidas</td>
+                <td>Administrador</td>
+            </tr>
+            <tr>
+                <td>María López</td>
+                <td>Desbloqueado</td>
+                <td>2024-09-05</td>
+                <td>El bloqueo ya no es necesario</td>
+                <td>Administrador</td>
+            </tr>
+            <!-- Más registros -->
+        </tbody>
+    </table>
+</div>
+

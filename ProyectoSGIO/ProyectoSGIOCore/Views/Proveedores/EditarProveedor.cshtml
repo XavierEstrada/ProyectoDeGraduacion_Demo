@@ -1,0 +1,39 @@
+﻿@model ProyectoSGIOCore.Models.Proveedor
+@{
+    ViewBag.Title = "EditarProveedor";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Editar Proveedor</h2>
+
+    <!-- Formulario de Edición de Proveedor -->
+    <form asp-action="EditarProveedor" asp-controller="Proveedores" method="post">
+        <input type="hidden" asp-for="IdProveedor" />
+        <!-- Nombre del Proveedor -->
+        <div class="mb-3">
+            <label asp-for="Nombre" class="form-label"></label>
+            <input asp-for="Nombre" class="form-control" required />
+        </div>
+
+        <!-- Correo Electrónico -->
+        <div class="mb-3">
+            <label asp-for="Correo" class="form-label"></label>
+            <input asp-for="Correo" class="form-control" type="email" required />
+        </div>
+        <!-- Número de Teléfono -->
+        <div class="mb-3">
+            <label asp-for="Telefono" class="form-label"></label>
+            <input asp-for="Telefono" class="form-control" required />
+        </div>
+
+        <!-- Dirección -->
+        <div class="mb-3">
+            <label asp-for="Direccion" class="form-label"></label>
+            <input asp-for="Direccion" class="form-control" required />
+        </div>
+
+        <!-- Botón para guardar cambios -->
+        <button type="submit" class="btn btn-primary w-100">Guardar Cambios</button>
+    </form>
+</div>

@@ -1,0 +1,58 @@
+﻿@model ProyectoSGIOCore.Models.Proyecto
+@{
+    ViewBag.Title = "CrearProyecto Proyecto";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<link href="~/css/proyectos.css" rel="stylesheet" />
+
+@if (TempData["MensajeError"] != null)
+{
+    <div class="alert alert-danger text-center mt-3" role="alert">
+        @TempData["MensajeError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Sección: Encabezado del Proyecto -->
+<h2 class="section-title">Crear Proyecto</h2>
+
+<form asp-action="CrearProyecto" method="post">
+    <!-- Campo para el nombre del proyecto -->
+    <div class="mb-3">
+        <label class="form-label">Nombre del Proyecto</label>
+        <input asp-for="Nombre" class="form-control" placeholder="Ingrese el nombre del proyecto" />
+        <span asp-validation-for="Nombre" class="text-danger"></span>
+    </div>
+
+    <hr />
+
+    <h3>Fases</h3>
+    <!-- Contenedor con desplazamiento para las fases -->
+    <div class="crear-proyecto-container">
+        <div class="fases-scroll-container">
+            <div id="fases-container">
+                <!-- Aquí se añadirán dinámicamente las fases como "cards" -->
+            </div>
+
+            <!-- Totales por fase y total del proyecto -->
+            <div class="mt-4">
+                <h4>Costo por cada fase:</h4>
+                <ul id="totalesFases">
+                    <!-- Aquí se agregarán dinámicamente los totales por fase -->
+                </ul>
+                <h4>Costo total del proyecto: $<span id="proyectoTotal">0.00</span></h4>
+            </div>
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-primary mt-3" onclick="addPhase()">Agregar Fase</button>
+    <button type="submit" class="btn btn-success mt-3">Crear Proyecto</button>
+</form>
+
+<!-- Validaciones para el modelo -->
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

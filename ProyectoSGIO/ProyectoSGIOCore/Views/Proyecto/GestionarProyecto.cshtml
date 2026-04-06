@@ -1,0 +1,523 @@
+﻿@model ProyectoSGIOCore.Models.Proyecto
+@{
+    ViewData["Title"] = "Detalles del Proyecto";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="~/css/proyectos.css" rel="stylesheet" />
+
+<!-- Sección: Mensajes de Éxito y Error -->
+<div class="alert-messages">
+    <!-- Mensaje Exito -->
+    <div id="successMessage" class="alert alert-success text-center mt-3" style="display:none;">
+        <span id="successText"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @if (TempData["MensajeExito"] != null)
+    {
+        <div class="alert alert-success text-center mt-3" role="alert">
+            @TempData["MensajeExito"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Mensaje Fracaso -->
+    <div id="errorMessage" class="alert alert-danger text-center mt-3" style="display:none;">
+        <span id="errorText"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @if (TempData["MensajeError"] != null)
+    {
+        <div class="alert alert-danger text-center mt-3" role="alert">
+            @TempData["MensajeError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+</div>
+
+<!-- Sección: Encabezado del Proyecto -->
+<h2 class="section-title">Gestionar Proyecto: <span class="project-name">@Model.Nombre</span></h2>
+<p class="project-details">Fecha de Creación: <span class="creation-date">@Model.FechaCreacion.ToShortDateString()</span></p>
+
+<!-- Formulario para seleccionar el estado -->
+<form id="estadoProyectoForm" asp-action="GuardarCambios" method="post">
+    <input type="hidden" name="proyectoId" value="@Model.Id" />
+
+    <!-- Campo Estado del Proyecto -->
+    <div class="mb-3">
+        <label for="EstadoProyecto" class="form-label">Estado del Proyecto</label>
+        @Html.DropDownListFor(
+                 model => model.Estado, // Vincula al campo 'Estado' del modelo
+                 new SelectList(Enum.GetValues(typeof(ProyectoSGIOCore.Models.EstadoProyecto))),
+                 new { @class = "form-select", id = "EstadoProyecto" })
+    </div>
+</form>
+
+<!-- Obtener el estado del proyecto desde el ViewData y establecerlo en el select -->
+<script>
+    var estadoProyecto = @ViewData["EstadoProyecto"]
+    document.getElementById('EstadoProyecto').value = estadoProyecto;
+</script>
+
+<!-- Sección: Lista de Fases -->
+<div class="content-scroll-container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Fases</h3>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarFase">
+            Agregar Fase
+        </button>
+    </div>
+
+    @foreach (var fase in Model.Fases)
+    {
+        <div class="fase-card">
+            <!-- Encabezado de la Fase -->
+            <div class="fase-header d-flex justify-content-between align-items-center">
+                <h4>@fase.Nombre</h4>
+                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarFase_@fase.Id">
+                    Eliminar Fase
+                </button>
+            </div>
+
+            <!-- Lista de Tareas -->
+            <div class="tareas-list">
+                <h5>Tareas</h5>
+                <ul>
+                    @foreach (var tarea in fase.Tareas)
+                    {
+                        <li class="tarea-item d-flex align-items-center">
+
+                            <div class="tarea-info flex-grow-1">
+                                <strong>@tarea.Nombre</strong> - Inicio: @tarea.FechaInicio.ToShortDateString() - Fin: @tarea.FechaFin.ToShortDateString() - Costo: $@tarea.Costo
+                            </div>
+
+                            <!-- Botón de Eliminar Tarea -->
+                            <button type="button" class="btn btn-danger btn-sm eliminar-tarea-btn" data-tarea-id="@tarea.Id" data-tarea-nombre="@tarea.Nombre" data-bs-toggle="modal" data-bs-target="#modalEliminarTarea">
+                                <i class="bi bi-trash"></i>
+                            </button>
+
+                            <label class="checkbox-btn ms-2">
+                                <input id="checkbox_@tarea.Id" type="checkbox" @(tarea.Completada ? "checked" : "") />
+                                <span class="checkmark"></span>
+                            </label>
+                        </li>
+                    }
+                </ul>
+                <div><strong>Total Fase: $@fase.Tareas.Sum(t => t.Costo)</strong></div>
+                <a class="btn btn-outline-primary agregar-tareas-btn" data-fase-id="@fase.Id">Agregar Tareas</a>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmación para Eliminar Fase -->
+        <div class="modal fade" id="modalEliminarFase_@fase.Id" tabindex="-1" aria-labelledby="modalEliminarFaseLabel_@fase.Id" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalEliminarFaseLabel_@fase.Id">Confirmar Eliminación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        ¿Está seguro de eliminar la fase <strong>@fase.Nombre</strong> y todas sus tareas? Esta acción no se puede deshacer.
+                    </div>
+                    <div class="modal-footer">
+                        <form asp-action="EliminarFase" asp-controller="Proyecto" method="post">
+                            <input type="hidden" name="faseId" value="@fase.Id" />
+                            <button type="submit" class="btn btn-danger">Confirmar</button>
+                        </form>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Modal único reutilizable para eliminar tareas -->
+    <div class="modal fade" id="modalEliminarTarea" tabindex="-1" aria-labelledby="modalEliminarTareaLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEliminarTareaLabel">Eliminar Tarea</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro de que deseas eliminar la tarea "<strong id="tareaNombre"></strong>"?
+                </div>
+                <div class="modal-footer">
+                    <form method="post" action="@Url.Action("EliminarTarea", "Proyecto")">
+                        <input type="hidden" name="tareaId" id="tareaId" value="" />
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sección: Lista de Hitos -->
+<div class="content-scroll-container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Hitos</h3>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarHito">
+            Agregar Hito
+        </button>
+    </div>
+
+    @foreach (var hito in Model.Hitos)
+    {
+        <div class="fase-card">
+            <!-- Encabezado de la Fase -->
+            <div class="fase-header d-flex justify-content-between align-items-center">
+                <h4>Descripción: </h4><h5>@hito.Descripcion</h5>
+                <h4>Responsable: </h4> <h5>@hito.Usuario.Nombre @hito.Usuario.Apellido</h5>
+                <h4>Fecha: </h4> <h5>@hito.Fecha.ToShortDateString()</h5>
+                <h4>
+                    Estado: @if (@hito.estado == 1)
+                    {
+                        <span class="btn btn-success btn-sm">
+                            Completo
+                        </span>
+                    }
+                    @if (@hito.estado == 2)
+                    {
+                        <span class=" btn btn-danger btn-sm">
+                            Pendiente
+                        </span>
+                    }
+                    @if (@hito.estado == 3)
+                    {
+                        <span class="btn btn-warning btn-sm">
+                            En Proceso
+                        </span>
+                    }
+                    @if (@hito.estado == 4)
+                    {
+                        <span class="btn btn-success btn-sm" style="background-color: #28a745; color: white;">
+                            Aprobado
+                        </span>
+                    }
+                    @if (@hito.estado == 5)
+                    {
+                        <span class="btn btn-danger btn-sm" style="background-color: #dc3545; color: white;">
+                            Rechazado
+                        </span>
+                    }
+                </h4>
+                <div>
+                    @if (hito.estado == 1)
+                    {
+                        <form asp-action="AprobarHito" asp-controller="Proyecto" method="post" style="display:inline-block;">
+                            <input type="hidden" name="hitoId" value="@hito.ID" />
+                            <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                                Aprobar
+                            </button>
+                        </form>
+
+                        <form asp-action="RechazarHito" asp-controller="Proyecto" method="post" style="display:inline-block;">
+                            <input type="hidden" name="hitoId" value="@hito.ID" />
+                            <button type="submit" style="background-color: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                                Rechazar
+                            </button>
+                        </form>
+                    }
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarHito_@hito.ID">
+                        Eliminar Hito
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmación para Eliminar Hito -->
+        <div class="modal fade" id="modalEliminarHito_@hito.ID" tabindex="-1" aria-labelledby="modalEliminarHitoLabel_@hito.ID" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalEliminarHitoLabel_@hito.ID">Confirmar Eliminación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        ¿Está seguro de eliminar el hito <strong>@hito.Descripcion</strong>? Esta acción no se puede deshacer.
+                    </div>
+                    <div class="modal-footer">
+                        <form asp-action="EliminarHito" asp-controller="Proyecto" method="post">
+                            <input type="hidden" name="hitoId" value="@hito.ID" />
+                            <button type="submit" class="btn btn-danger">Confirmar</button>
+                        </form>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Sección: Modales -->
+<!-- Modal para Agregar Fase -->
+<div class="modal fade" id="modalAgregarFase" tabindex="-1" aria-labelledby="modalAgregarFaseLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAgregarFaseLabel">Agregar Nueva Fase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form asp-action="AgregarFase" asp-controller="Proyecto" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="proyectoId" value="@Model.Id" />
+                    <div class="mb-3">
+                        <label for="NombreFase" class="form-label">Nombre de la Fase</label>
+                        <input type="text" class="form-control" id="NombreFase" name="Nombre" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar tareas -->
+<div class="modal fade" id="modalAgregarTarea" tabindex="-1" aria-labelledby="modalAgregarTareaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAgregarTareaLabel">Agregar Tareas a la Fase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alertContainer" class="mb-3"></div>
+                <form id="formAgregarTareas">
+                    <input type="hidden" id="faseId" name="faseId" />
+                    <div class="mb-3">
+                        <label for="tareaNombre">Nombre de la Tarea</label>
+                        <input type="text" class="form-control" id="tareaNombre" name="tareas[0].Nombre" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="fechaInicio">Fecha de Inicio</label>
+                        <input type="date" class="form-control" id="fechaInicio" name="tareas[0].FechaInicio" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="fechaFin">Fecha de Fin</label>
+                        <input type="date" class="form-control" id="fechaFin" name="tareas[0].FechaFin" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="tareaCosto">Costo</label>
+                        <input type="number" class="form-control" id="tareaCosto" name="tareas[0].Costo" min="0" step="any" required />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success" id="btnAgregarTarea">Agregar Tarea</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Hitos -->
+<div class="modal fade" id="modalAgregarHito" tabindex="-1" aria-labelledby="modalAgregarHitoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAgregarHitoLabel">Agregar Nuevo Hito</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form asp-action="AsignarHito" method="post">
+                <input type="hidden" name="id" value="@ViewBag.ProyectoId" />
+                <div class="modal-body">
+                    <div style="display:flex; flex-direction:column; justify-content:space-between;">
+                        <div class="mb-3">
+                            <label>Ingrese una descripción para este Hito</label>
+                            <textarea name="Descripcion" class="form-control" placeholder="Descripción del Hito"></textarea>
+                            <span class="text-danger"></span>
+                        </div>
+                        <div class="mb-3" style="display:flex; flex-direction:column;">
+                            <label class="form-label">Empleado</label>
+                            <select name="usuarioId" asp-items="ViewBag.Usuarios" class="form-select">
+                                <option value="">Seleccione un empleado</option>
+                            </select>
+                            <span class="text-danger"></span>
+                        </div>
+                        <div class="mb-3" style="display:flex; flex-direction:column;">
+                            <label>Estado</label>
+                            <select name="estadoId" asp-items="ViewBag.EstadosHito" class="form-select">
+                                <option value="">Seleccione un estado</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" style="display:flex; flex-direction:column;">
+                            <label>Fecha de Inicio</label>
+                            <input type="date" name="Fecha" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación para Guardar Cambios -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar cambios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas guardar los cambios?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="confirmSave" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sección: Botones de Navegación -->
+<div class="return-button">
+    <a asp-action="Proyectos" asp-controller="Proyecto" class="btn btn-dark">Volver a Proyectos</a>
+    <button type="button" id="guardarEstadoBtn" class="btn btn-primary">Guardar Estado</button>
+    <button id="saveChangesBtn" class="btn btn-success">Guardar Cambios</button>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('saveChangesBtn').onclick = function () {
+            new bootstrap.Modal(document.getElementById('confirmModal')).show();
+        };
+
+        document.getElementById('confirmSave').onclick = function () {
+            guardarCambios();
+        };
+
+        // Evento para guardar solo el estado del proyecto
+        document.getElementById('guardarEstadoBtn').onclick = function () {
+            document.getElementById('estadoProyectoForm').submit();
+        };
+
+        // Función para guardar los cambios de tareas
+        function guardarCambios() {
+            let tareasCompletadas = {};
+            document.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+                tareasCompletadas[checkbox.id.split('_')[1]] = checkbox.checked;
+            });
+
+            fetch('@Url.Action("ActualizarTareas", "Proyecto")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tareasCompletadas)
+            }).then(response => response.json())
+                .then(data => {
+                    const confirmModal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+                    confirmModal.hide();
+
+                    // Reiniciar visibilidad y texto de mensajes
+                    document.getElementById('successMessage').style.display = 'none';
+                    document.getElementById('errorMessage').style.display = 'none';
+
+                    if (data.message) {
+                        document.getElementById('successText').textContent = data.message;
+                        document.getElementById('successMessage').style.display = 'block';
+                    } else if (data.error) {
+                        document.getElementById('errorText').textContent = data.error;
+                        document.getElementById('errorMessage').style.display = 'block';
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Botones de agregar tareas
+        document.querySelectorAll('.agregar-tareas-btn').forEach(button => {
+            button.addEventListener('click', async () => {
+                const faseId = button.getAttribute('data-fase-id');
+
+                try {
+                    const response = await fetch(`/Proyecto/ObtenerFase?faseId=${faseId}`);
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        mostrarAlertaEnModal(data.mensaje || "Error al cargar la fase.", "danger");
+                        return;
+                    }
+
+                    // Configurar el modal
+                    document.getElementById('modalAgregarTareaLabel').textContent = `Agregar tareas a la fase: ${data.nombre}`;
+                    document.getElementById('faseId').value = data.id;
+                    const modal = new bootstrap.Modal(document.getElementById('modalAgregarTarea'));
+                    modal.show();
+
+                } catch (error) {
+                    mostrarAlertaEnModal("Error al cargar los datos de la fase. Intente de nuevo.", "danger");
+                    console.error("Error:", error);
+                }
+            });
+        });
+
+        // Enviar formulario de agregar tareas
+        document.getElementById('formAgregarTareas').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+
+            try {
+                const response = await fetch('/Proyecto/AgregarTareasModal', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const result = await response.json();
+
+                if (response.ok && result.exito) {
+                    mostrarAlertaEnModal(result.mensaje, "success");
+
+                    // Cerrar el modal después de un corto intervalo
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarTarea'));
+                        modal.hide();
+                        location.reload(); // Actualiza la página
+                    }, 2000);
+                } else {
+                    mostrarAlertaEnModal(result.mensaje || "Error al agregar tareas.", "danger");
+                }
+
+            } catch (error) {
+                mostrarAlertaEnModal("Error al enviar el formulario. Intente de nuevo.", "danger");
+                console.error("Error:", error);
+            }
+        });
+
+        // Función para mostrar alertas dentro del modal
+        function mostrarAlertaEnModal(mensaje, tipo = "danger") {
+          const alertContainer = document.getElementById("alertContainer");
+          alertContainer.innerHTML = `
+          <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+            ${mensaje}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
+        }
+
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const eliminarTareaBtns = document.querySelectorAll(".eliminar-tarea-btn");
+            const modalEliminarTarea = document.getElementById("modalEliminarTarea");
+            const tareaNombre = document.getElementById("tareaNombre");
+            const tareaIdInput = document.getElementById("tareaId");
+
+            eliminarTareaBtns.forEach(btn => {
+                btn.addEventListener("click", function () {
+                    const tareaId = btn.getAttribute("data-tarea-id");
+                    const tareaNombreTexto = btn.getAttribute("data-tarea-nombre");
+
+                    tareaNombre.textContent = tareaNombreTexto;
+                    tareaIdInput.value = tareaId;
+                });
+            });
+        });
+    </script>
+}

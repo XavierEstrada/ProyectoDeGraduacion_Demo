@@ -1,0 +1,32 @@
+﻿@model ProyectoSGIOCore.Models.Proyecto
+@{
+    ViewData["Title"] = "Asignar Cliente";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link href="~/css/proyectos.css" rel="stylesheet" />
+
+@if (TempData["MensajeError"] != null)
+{
+    <div class="alert alert-danger text-center mt-3" role="alert">
+        @TempData["MensajeError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Sección: Encabezado del Proyecto -->
+<h2 class="section-title">Asignar Cliente</h2>
+
+
+<form asp-action="AsignarCliente" method="post">
+    <input type="hidden" name="id" value="@ViewBag.ProyectoId" />
+
+    <div class="mb-3">
+        <label class="form-label">Usuario</label>
+        <select name="usuarioId" asp-items="ViewBag.Usuarios" class="form-select">
+            <option value="">Seleccione un usuario</option>
+        </select>
+        <span class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-success mt-3">Asignar Cliente</button>
+</form>

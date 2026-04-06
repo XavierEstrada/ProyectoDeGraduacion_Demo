@@ -1,0 +1,96 @@
+﻿@model ProyectoSGIOCore.ViewModels.CrearUsuarioVM
+@{
+    ViewBag.Title = "CrearProyecto Usuario";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var rolesList = ViewBag.Roles as List<ProyectoSGIOCore.Models.Rol>;
+}
+
+<div class="container my-4">
+    <div class="form-container">
+        <h2 class="text-center mb-4">Crear nuevo usuario</h2>
+
+        <!-- Mensaje de exito -->
+        @if (TempData["MensajeExito"] != null)
+        {
+            <div class="alert alert-success text-center alert-dismissible fade show" role="alert">
+                @TempData["MensajeExito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <form asp-action="CrearUsuario" asp-controller="Administrativo" method="post">
+
+            <!-- Nombre -->
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre</label>
+                <input type="text" asp-for="Nombre" class="form-control" placeholder="Ingrese el nombre" required>
+            </div>
+
+            <!-- Apellidos -->
+            <div class="mb-3">
+                <label for="apellido" class="form-label">Apellido(s)</label>
+                <input type="text" asp-for="Apellido" class="form-control" placeholder="Ingrese el/los apellido(s)" required>
+            </div>
+
+            <!-- Correo Electrónico -->
+            <div class="mb-3">
+                <label for="correo" class="form-label">Correo Electrónico</label>
+                <input type="email" asp-for="Correo" class="form-control" placeholder="ejemplo@correo.com" required>
+            </div>
+
+            <!-- Rol -->
+            <div class="mb-3">
+                <label for="rol" class="form-label">Rol</label>
+                @if (rolesList != null && rolesList.Any())
+                {
+                    <select asp-for="RolSeleccionado" class="form-select" required>
+                        <option selected disabled>Seleccione un rol</option>
+                        @foreach (var rol in rolesList)
+                        {
+                            <option value="@rol.Nombre">@rol.Nombre</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <div class="alert alert-warning" role="alert">
+                        No hay roles disponibles para asignar al usuario.
+                    </div>
+                }
+            </div>
+
+            <!-- Contraseña -->
+            <div class="mb-3 password-container">
+                <label for="clave" class="form-label">Contraseña</label>
+                <div class="input-group">
+                    <input type="password" asp-for="Clave" id="passwordCrearUsuario" class="form-control" placeholder="Ingrese la contraseña" required>
+                    <button type="button" class="btn btn-outline-secondary toggle-password" onclick="togglePasswordVisibility('passwordCrearUsuario', 'iconCrearUsuario')">
+                        <i id="iconCrearUsuario" class="bi bi-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Confirmar Contraseña -->
+            <div class="mb-3 password-container">
+                <label for="confirmarClave" class="form-label">Confirmar Contraseña</label>
+                <div class="input-group">
+                    <input type="password" asp-for="ConfirmarClave" id="passwordConfirmarCrearUsuario" class="form-control" placeholder="Confirme la contraseña" required>
+                    <button type="button" class="btn btn-outline-secondary toggle-password" onclick="togglePasswordVisibility('passwordConfirmarCrearUsuario', 'iconConfirmarCrearUsuario')">
+                        <i id="iconConfirmarCrearUsuario" class="bi bi-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Botón de Envío -->
+            <button type="submit" class="btn btn-primary w-100">Agregar Usuario</button>
+        </form>
+
+        <!-- Mensaje de error -->
+        @if (ViewData["Mensaje"] != null)
+        {
+            <div class="alert alert-danger text-center mt-3" role="alert">
+                @ViewData["Mensaje"]
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,46 @@
+﻿@model ProyectoSGIOCore.ViewModels.UsuarioVM
+@{
+    ViewBag.Title = "Registro";
+    Layout = "~/Views/Shared/_LayoutExterno.cshtml";
+}
+
+<form asp-controller="Acceso" asp-action="CambiarContraseña" method="post" class="form">
+    <p class="title">¡Completa el cambio de contraseña!</p>
+    <p class="message">Completa el formulario para completar tu cambio de contraseña.</p>
+
+    <label class="password-container">
+        <input asp-for="Clave" id="passwordRegistro" type="password" class="input" required />
+        <span>Contraseña</span>
+        <button type="button" class="btn btn-outline-secondary toggle-password" onclick="togglePasswordVisibility('passwordRegistro', 'icon2')">
+            <i id="icon2" class="bi bi-eye-slash"></i>
+        </button>
+    </label>
+
+    <label class="password-container">
+        <input asp-for="ConfirmarClave" id="passwordConfirmar" type="password" class="input" required />
+        <span>Confirmar Contraseña</span>
+        <button type="button" class="btn btn-outline-secondary toggle-password" onclick="togglePasswordVisibility('passwordConfirmar', 'icon3')">
+            <i id="icon3" class="bi bi-eye-slash"></i>
+        </button>
+    </label>
+
+    <button type="submit" class="submit">Cambiar Contraseña</button>
+</form>
+
+
+@if (ViewData["Mensaje"] != null)
+{
+    <div class="alert alert-danger text-center" role="alert">
+        @ViewData["Mensaje"]
+    </div>
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger text-center">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <p>@error.ErrorMessage</p>
+        }
+    </div>
+}

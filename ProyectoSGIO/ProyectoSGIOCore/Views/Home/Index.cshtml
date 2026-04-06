@@ -1,0 +1,89 @@
+﻿@using System.Security.Claims
+@{
+    ViewBag.Title = "Home Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="text-center mt-5">
+    <h1 class="fw-bold text-primary">¡ Bienvenido @User.Claims.Where(c => c.Type == ClaimTypes.Name).Select(c => c.Value).SingleOrDefault() !</h1>
+    <p class="lead text-muted">Nos alegra tenerte de vuelta. Explora el sistema para ver los avances y novedades de tu proyecto.</p>
+</div>
+
+<!-- Sección Uno: Inicio del Proyecto -->
+<section class="py-5 bg-light" id="scroll-target">
+    <div class="container px-5 my-5">
+        <div class="row gx-5 align-items-center">
+            <div class="card shadow-sm border-0">
+                <div class="content">
+                    <p class="heading fw-bolder">Nuestro sistema</p>
+                    <p class="para lead fw-normal">
+                        Este sistema de gestión nace con el objetivo de optimizar la experiencia del usuario, brindando una herramienta intuitiva y transparente para visualizar el avance de su proyecto.
+                        A través de una interfaz amigable y accesible, los usuarios podrán seguir cada etapa del proceso de manera clara y sencilla.
+                    </p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <img class="img-fluid rounded mb-5 mb-lg-0" src="~/img/system.gif" alt="Inicio del proyecto" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sección Dos: Crecimiento y Futuro -->
+<section class="py-5 bg-light" id="scroll-target">
+    <div class="container px-5 my-5">
+        <div class="row gx-5 align-items-center">
+            <div class="col-lg-6">
+                <img class="img-fluid rounded mb-5 mb-lg-0" src="~/img/System2.gif" alt="Crecimiento y futuro" />
+            </div>
+            <div class="card shadow-sm border-0">
+                <div class="content ">
+                    <p class="heading fw-bolder">Funciones Principales</p>
+                    <p class="para lead fw-normal">
+                        Nuestro sistema le permitirá explorar en detalle el proyecto en desarrollo. Acceda a imágenes de planos, renders, hitos alcanzados y pendientes, y estimaciones de costos y presupuestos actualizados.
+                        Además, podrá visualizar el porcentaje de avance y otros datos clave para un seguimiento integral del proyecto.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Proyectos Recientes -->
+<section class="py-5" id="proyectos">
+    <div class="container px-5">
+        <h2 class="fw-bolder text-center mb-5">Nuestros Proyectos Recientes</h2>
+        <div class="row gx-5">
+            <div class="col-lg-4 mb-4">
+                <img class="img-fluid rounded" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
+                <h5 class="mt-3">Proyecto 1</h5>
+                <p class="text-muted">Descripción breve del proyecto.</p>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <img class="img-fluid rounded" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
+                <h5 class="mt-3">Proyecto 2</h5>
+                <p class="text-muted">Descripción breve del proyecto.</p>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <img class="img-fluid rounded" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
+                <h5 class="mt-3">Proyecto 3</h5>
+                <p class="text-muted">Descripción breve del proyecto.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (!User.Identity.IsAuthenticated)
+{
+    <section class="py-5 text-center">
+        <div class="container">
+            <h2 class="fw-bold text-primary">¡Regístrate ahora!</h2>
+            <p class="lead text-muted mb-4">Accede a todas las funcionalidades del sistema y gestiona tus proyectos de manera eficiente.</p>
+            <button class="btnRegistro" onclick="location.href='@Url.Action("Registro", "Acceso")'">Registrarse</button>
+        </div>
+    </section>
+
+    <br />
+    <br />
+}

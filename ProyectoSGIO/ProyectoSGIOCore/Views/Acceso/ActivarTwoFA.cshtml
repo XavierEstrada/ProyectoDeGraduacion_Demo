@@ -1,0 +1,34 @@
+﻿@model ProyectoSGIOCore.Models.Usuario
+@{
+    ViewBag.Title = "Autenticación de 2 Factores";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="container my-4" style="display:flex; flex-direction:column">
+    <div class="form-container" style="display:flex; justify-content:center;">
+        <form asp-controller="Acceso" asp-action="ActivarTwoFA" method="post" class="form">
+            <div class="mb-3">
+                <p class="title">Autenticación de 2 Factores</p>
+                <p class="message">La confirmación se enviará a este correo</p>
+            </div>
+
+            <div class="mb-3">
+                <input type="email" class="form-control" id="correo" value="@Model.Correo" disabled>
+            </div>
+
+            @if (Model.TwoFA)
+            {
+                <div class="alert alert-info text-center">La autenticación en dos pasos ya está activada.</div>
+            }
+            <button type="submit" class="btn btn-primary w-100" @(Model.TwoFA ? "disabled" : "")>Confirmar correo</button>
+
+        </form>
+    </div>
+
+</div>
+
+@if (ViewData["Mensaje"] != null)
+{
+    <div class="alert alert-danger text-center" role="alert">
+        @ViewData["Mensaje"]
+    </div>
+}

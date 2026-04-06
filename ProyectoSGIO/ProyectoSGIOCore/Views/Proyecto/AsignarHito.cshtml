@@ -1,0 +1,56 @@
+﻿@model ProyectoSGIOCore.Models.Proyecto
+@{
+    ViewData["Title"] = "Asignar Hito";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="~/css/proyectos.css" rel="stylesheet" />
+
+@if (TempData["MensajeError"] != null)
+{
+    <div class="alert alert-danger text-center mt-3" role="alert">
+        @TempData["MensajeError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Sección: Encabezado del Proyecto -->
+<h2 class="section-title">Asignar Hito</h2>
+
+<form asp-action="AsignarHito" method="post">
+    <input type="hidden" name="id" value="@ViewBag.ProyectoId" />
+
+    <!-- Contenedor del formulario -->
+    <div class="fase-card">
+        <div class="mb-3">
+            <label class="form-label">Descripción del Hito</label>
+            <textarea name="Descripcion" class="form-control" placeholder="Descripción del Hito"></textarea>
+            <span class="text-danger"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Empleado</label>
+                <select name="usuarioId" asp-items="ViewBag.Usuarios" class="form-select">
+                    <option value="">Seleccione un empleado</option>
+                </select>
+                <span class="text-danger"></span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Estado</label>
+                <select name="estadoId" asp-items="ViewBag.EstadosHito" class="form-select">
+                    <option value="">Seleccione un estado</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Fecha de Inicio</label>
+                <input type="date" name="Fecha" class="form-control" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón de enviar -->
+    <div class="text-center mt-4">
+        <button type="submit" class="btn btn-success">Asignar Hito</button>
+    </div>
+</form>

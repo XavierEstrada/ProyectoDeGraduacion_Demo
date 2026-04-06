@@ -1,0 +1,38 @@
+﻿@model ProyectoSGIOCore.ViewModels.IniciarSesionVM
+
+@{
+    ViewBag.Title = "Login";
+    Layout = "~/Views/Shared/_LayoutExterno.cshtml";
+}
+
+<form asp-controller="Acceso" asp-action="IniciarSesion" method="post" class="form">
+    <p class="title">¡Bienvenido de nuevo!</p>
+    <p class="message">Por favor, introduce tus credenciales para acceder a tu cuenta.</p>
+
+    <label>
+        <input asp-for="Correo" class="input" required />
+        <span>Correo</span>
+    </label>
+
+    <label class="password-container">
+        <input asp-for="Clave" id="passwordIniciarSesion" type="password" class="input" required />
+        <span>Contraseña</span>
+        <button type="button" class="btn btn-outline-secondary toggle-password" onclick="togglePasswordVisibility('passwordIniciarSesion', 'icon1')">
+            <i id="icon1" class="bi bi-eye-slash"></i>
+        </button>
+    </label>
+
+    <button type="submit" class="submit">Iniciar Sesion</button>
+    <br />
+    <p class="signin">¿Olvidaste tu contraseña? <a asp-controller="Acceso" asp-action="RecuperarCuenta">Recuperar Contraseña</a></p>
+    <p class="signin">¿No tiene una cuenta? <a asp-controller="Acceso" asp-action="Registro">Crear Cuenta</a></p>
+</form>
+
+
+
+@if (ViewData["Mensaje"] != null)
+{
+    <div class="alert alert-danger text-center" role="alert">
+        @ViewData["Mensaje"]
+    </div>
+}

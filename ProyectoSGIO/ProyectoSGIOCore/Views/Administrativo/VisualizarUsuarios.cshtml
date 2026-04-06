@@ -1,0 +1,120 @@
+﻿@model IEnumerable<ProyectoSGIOCore.Models.Usuario>
+@{
+    ViewData["Title"] = "Visualizar Usuarios";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container my-4">
+    <h2 class="text-center mb-4">Usuarios registrados en el sistema</h2>
+
+    @if (TempData["MensajeExito"] != null)
+    {
+        <div class="alert alert-success text-center alert-dismissible fade show" role="alert">
+            @TempData["MensajeExito"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["MensajeError"] != null)
+    {
+        <div class="alert alert-danger text-center alert-dismissible fade show" role="alert">
+            @TempData["MensajeError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="text-end mb-3">
+        <a asp-controller="Administrativo" asp-action="CrearUsuario" class="btn btn-primary">Registrar nuevo usuario</a>
+    </div>
+    <!-- Tabla con Bootstrap y DataTable -->
+    <div class="table-responsive">
+        <table id="usuariosTable" class="table table-striped table-hover table-bordered table-custom">
+            <thead class="table-primary">
+                <tr>
+                    <th class="text-center">ID</th>
+                    <th class="text-center">Nombre</th>
+                    <th class="text-center">Apellido</th>
+                    <th class="text-center">Correo</th>
+                    <th class="text-center">Rol</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var usuario in Model)
+                {
+                    <tr class="text-center">
+                        <td>@usuario.IdUsuario</td>
+                        <td>@usuario.Nombre</td>
+                        <td>@usuario.Apellido</td>
+                        <td>@usuario.Correo</td>
+                        <td>@usuario.Rol.Nombre</td>
+                        <td>
+                            <!-- Botón de editar -->
+                            <a href="@Url.Action("CambiarRol", "Administrativo", new { id = usuario.IdUsuario })" class="btn btn-warning me-1" title="Cambiar rol">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+
+
+                            @if (usuario.Activo)
+                            {
+                                <!-- Botón de bloquear -->
+                                <button type="button" class="btn btn-danger me-1 bloquearID" data-bs-toggle="modal" data-bs-target="#bloquearModal" title="Bloquear" data-bs-id="@usuario.IdUsuario">
+                                    <i class="bi bi-lock-fill"></i>
+                                </button>
+                            }
+                            @if (!usuario.Activo)
+                            {
+                                <!-- Botón de desbloquear -->
+                                <button type="button" class="btn btn-success me-1 bloquearID" data-bs-toggle="modal" data-bs-target="#bloquearModal" title="Desbloquear" data-bs-id="@usuario.IdUsuario">
+                                    <i class="bi bi-unlock-fill"></i>
+                                </button>
+                            }
+
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- Modal para Confirmar Desbloqueo -->
+<div class="modal fade" id="bloquearModal" tabindex="1" aria-labelledby="bloquearModal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bloquearModal">Cambiar Estado de Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @using (Html.BeginForm("CambiarEstado", "Administrativo", FormMethod.Post))
+                {
+                    <input type="hidden" id="IdUsuario" name="IdUsuario" value="">
+                    <p>¿Estás seguro de que deseas cambiar el estado de este usuario?</p>
+                    <div style="text-align:right;">
+                        <button type="submit" id="submit-Active" class="btn btn-success">Confirmar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $("#usuariosTable").DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json"
+                }
+            });
+        });
+
+        $(".bloquearID").click(function () {
+            $("#IdUsuario").val($(this).attr('data-bs-id'));
+         });
+    </script>
+}

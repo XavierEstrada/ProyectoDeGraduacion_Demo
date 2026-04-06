@@ -1,0 +1,24 @@
+﻿@model ProyectoSGIOCore.ViewModels.UsuarioVM
+@{
+    ViewBag.Title = "Autenticación de 2 Factores";
+    Layout = "~/Views/Shared/_LayoutExterno.cshtml";
+}
+
+<form asp-controller="Acceso" asp-action="TwoFA" method="post" class="form">
+    <p class="title">Autenticación de 2 Factores</p>
+    <p class="message">Introduce el pin que se envió a tu correo electrónico.</p>
+
+    <label>
+        <input asp-for="Clave" class="input" required />
+        <span>Pin</span>
+    </label>
+
+    <button class="submit">Confirmar Pin</button>
+</form>
+
+@if (ViewData["Mensaje"] != null)
+{
+    <div class="alert alert-danger text-center" role="alert">
+        @ViewData["Mensaje"]
+    </div>
+}

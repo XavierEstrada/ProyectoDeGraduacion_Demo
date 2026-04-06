@@ -1,0 +1,61 @@
+﻿@model ProyectoSGIOCore.Models.Inventario
+@{
+    ViewBag.Title = "Editar Producto";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container my-4">
+    <h2 class="text-center mb-4">Editar Producto en Inventario</h2>
+
+    @if (TempData["MensajeExito"] != null)
+    {
+        <div class="alert alert-success text-center alert-dismissible fade show" role="alert">
+            @TempData["MensajeExito"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form asp-action="EditarInventario" method="post" class="needs-validation" novalidate>
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ID" />
+
+        <div class="mb-3">
+            <label asp-for="Nombre" class="form-label">Nombre del Producto</label>
+            <input asp-for="Nombre" class="form-control" required />
+            <span asp-validation-for="Nombre" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Categoria" class="form-label">Categoría</label>
+            <input asp-for="Categoria" class="form-control" required />
+            <span asp-validation-for="Categoria" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Cantidad" class="form-label">Cantidad</label>
+            <input asp-for="Cantidad" type="number" class="form-control" min="0" required />
+            <span asp-validation-for="Cantidad" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="PrecioUnidad" class="form-label">Precio por Unidad</label>
+            <input asp-for="PrecioUnidad" type="number" step="0.01" class="form-control" min="0" required />
+            <span asp-validation-for="PrecioUnidad" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="InformacionAdicional" class="form-label">Información Adicional</label>
+            <textarea asp-for="InformacionAdicional" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="InformacionAdicional" class="text-danger"></span>
+        </div>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <a asp-action="VisualizarInventario" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

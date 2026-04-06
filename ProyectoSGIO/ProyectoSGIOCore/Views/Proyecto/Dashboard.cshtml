@@ -1,0 +1,207 @@
+﻿@model ProyectoSGIOCore.Models.Proyecto
+@using Newtonsoft.Json
+@{
+    ViewData["Title"] = "Detalles del Proyecto";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hitoDataJson = ViewBag.HitoDataJson;
+    var tareaDataJson = ViewBag.TareaDataJson;
+    var faseDataJson = ViewBag.FaseDataJson;
+    var progresoGeneral = ViewBag.ProgresoGeneral;
+}
+
+<link href="~/css/proyectos.css" rel="stylesheet" />
+
+<style>
+    .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        height: 400px;
+        background-color: white;
+        padding: 20px;
+        padding-bottom: 40px; /* Extra padding at the bottom */
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin: 10px;
+        overflow: hidden; /* Ensure no overflow */
+    }
+
+    canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .chart-title {
+        text-align: center;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+
+    .progress {
+        margin-bottom: 20px;
+    }
+</style>
+
+<h2>Dashboard</h2>
+
+<!-- Barra de progreso general del proyecto -->
+
+<div style="display: flex; justify-content:center; text-align:center; color:black; gap:15px">
+    <span style="font-weight:600; font-size:24px"> Progreso general del proyecto:  </span>
+    <div class="progress" style="width:50%; height:40px">
+        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style=" font-size:18px; align-content:flex-end; align-self:flex-end; color: black; height: 40px; width: @progresoGeneral%;" aria-valuenow="@progresoGeneral" aria-valuemin="0" aria-valuemax="100">
+            @progresoGeneral%
+        </div>
+    </div>
+</div>
+
+<!-- Sección de gráficos circulares (Hitos, Tareas, Fases) -->
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+
+    <!-- Gráfico de Hitos -->
+    <div class="chart-container">
+        <div class="chart-title">Hitos</div>
+        <canvas id="hitoChart"></canvas>
+    </div>
+
+    <!-- Gráfico de Tareas -->
+    <div class="chart-container">
+        <div class="chart-title">Tareas</div>
+        <canvas id="tareaChart"></canvas>
+    </div>
+
+    <!-- Gráfico de Fases -->
+    <div class="chart-container">
+        <div class="chart-title">Fases</div>
+        <canvas id="faseChart"></canvas>
+    </div>
+
+</div>
+
+<!-- Sección de barras de progreso (Hitos, Tareas, Fases) -->
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+
+    <!-- Progreso de Hitos -->
+    <div class="chart-container">
+        <div class="chart-title">
+            Hitos
+        </div>
+        <div class="card-body">
+            @foreach (var hito in ViewBag.HitoData)
+            {
+                <h4 class="small font-weight-bold">@hito.Nombre <span class="float-right">@hito.Count</span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: @hito.CountP%" aria-valuemin="0" aria-valuemax="10"></div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Progreso de Tareas -->
+    <div class="chart-container">
+        <div class="chart-title">
+            Tareas
+        </div>
+        <div class="card-body">
+            @foreach (var tarea in ViewBag.TareaData)
+            {
+                <h4 class="small font-weight-bold">@tarea.Nombre <span class="float-right">@tarea.Count%</span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: @tarea.CountP%" aria-valuemin="0" aria-valuemax="10"></div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Progreso de Fases -->
+    <div class="chart-container">
+        <div class="chart-title">
+            Fases
+        </div>
+        <div class="card-body">
+            @foreach (var fase in ViewBag.FaseData)
+            {
+                <h4 class="small font-weight-bold">@fase.Nombre <span class="float-right">@fase.PorcentajeCompletadas%</span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: @fase.PorcentajeCompletadas%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    function createDoughnutChart(ctx, data, labels, colors, borderColors) {
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        bottom: 20 // Extra padding to prevent overflow
+                    }
+                }
+            }
+        });
+    }
+
+    var hitoData = JSON.parse('@Html.Raw(hitoDataJson)');
+    var tareaData = JSON.parse('@Html.Raw(tareaDataJson)');
+    var faseData = JSON.parse('@Html.Raw(faseDataJson)');
+
+    // Colores para hitos y fases
+    var colors = [
+        'rgba(255, 99, 132, 0.2)',  // Light Red
+        'rgba(75, 192, 75, 0.2)',   // Light Green
+        'rgba(255, 206, 86, 0.2)'    // Light Yellow
+    ];
+    var borderColors = [
+        'rgba(255, 99, 132, 1)',    // Darker Red
+        'rgba(75, 192, 75, 1)',     // Darker Green
+        'rgba(255, 206, 86, 1)'     // Darker Yellow
+    ];
+
+    // Crear gráfico de hitos
+    var hitoCtx = document.getElementById('hitoChart').getContext('2d');
+    createDoughnutChart(hitoCtx, hitoData.map(d => d.Count), hitoData.map(d => d.Nombre), colors, borderColors);
+
+    // Función para generar colores dinámicos de tareas
+    function getTareaColors(tareaData) {
+        return tareaData.map(tarea => tarea.Completada ? 'rgba(75, 192, 75, 0.2)' : 'rgba(255, 99, 132, 0.2)');
+    }
+
+    function getTareaBorderColors(tareaData) {
+        return tareaData.map(tarea => tarea.Completada ? 'rgba(75, 192, 75, 1)' : 'rgba(255, 99, 132, 1)');
+    }
+
+    // Crear gráfico de tareas
+    var tareaCtx = document.getElementById('tareaChart').getContext('2d');
+    createDoughnutChart(
+        tareaCtx,
+        tareaData.map(d => d.Count),
+        tareaData.map(d => d.Nombre),
+        getTareaColors(tareaData), // Colores dinámicos
+        getTareaBorderColors(tareaData) // Bordes dinámicos
+    );
+
+    // Crear gráfico de fases
+    var faseCtx = document.getElementById('faseChart').getContext('2d');
+    var faseLabels = faseData.map(f => f.Nombre);
+    var faseCounts = faseData.map(f => f.PorcentajeCompletadas);
+    createDoughnutChart(faseCtx, faseCounts, faseLabels, colors, borderColors);
+</script>

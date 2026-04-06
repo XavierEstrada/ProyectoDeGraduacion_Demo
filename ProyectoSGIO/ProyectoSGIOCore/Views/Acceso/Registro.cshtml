@@ -1,0 +1,65 @@
+﻿@model ProyectoSGIOCore.ViewModels.UsuarioVM
+@{
+    ViewBag.Title = "Registro";
+    Layout = "~/Views/Shared/_LayoutExterno.cshtml";
+}
+
+<form asp-controller="Acceso" asp-action="Registro" method="post" class="form">
+    <p class="title">¡Únete a nosotros!</p>
+    <p class="message">Completa el formulario para crear una nueva cuenta y empezar a hacer tus sueños realidad.</p>
+
+    <div class="flex">
+        <label>
+            <input asp-for="Nombre" class="input" required />
+            <span>Nombre</span>
+        </label>
+
+        <label>
+            <input asp-for="Apellido" class="input" required />
+            <span>Apellido(s)</span>
+        </label>
+    </div>
+
+    <label>
+        <input asp-for="Correo" class="input" required />
+        <span>Correo</span>
+    </label>
+
+    <label class="password-container">
+        <input asp-for="Clave" id="passwordRegistro" type="password" class="input" required />
+        <span>Contraseña</span>
+        <button type="button" class="btn btn-outline-secondary toggle-password" onclick="togglePasswordVisibility('passwordRegistro', 'icon2')">
+            <i id="icon2" class="bi bi-eye-slash"></i>
+        </button>
+    </label>
+
+    <label class="password-container">
+        <input asp-for="ConfirmarClave" id="passwordConfirmar" type="password" class="input" required />
+        <span>Confirmar Contraseña</span>
+        <button type="button" class="btn btn-outline-secondary toggle-password" onclick="togglePasswordVisibility('passwordConfirmar', 'icon3')">
+            <i id="icon3" class="bi bi-eye-slash"></i>
+        </button>
+    </label>
+
+    <button type="submit" class="submit">Crear Cuenta</button>
+
+    <p class="signin">¿Ya tiene una cuenta? <a asp-controller="Acceso" asp-action="IniciarSesion">Iniciar Sesión</a></p>
+</form>
+
+
+@if (ViewData["Mensaje"] != null)
+{
+    <div class="alert alert-danger text-center" role="alert">
+        @ViewData["Mensaje"]
+    </div>
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger text-center">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <p>@error.ErrorMessage</p>
+        }
+    </div>
+}

@@ -1,0 +1,38 @@
+﻿@model ProyectoSGIOCore.Models.Usuario
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Mi Perfil";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Mi Perfil</h2>
+
+    <form>
+        <div class="row mb-3">
+            <!-- Nombre -->
+            <div class="col-md-6">
+                <label for="nombre" class="form-label">Nombre</label>
+                <input type="text" class="form-control" id="nombre" value="@Model.Nombre" disabled>
+            </div>
+
+            <!-- Apellidos -->
+            <div class="col-md-6">
+                <label for="apellidos" class="form-label">Apellido(s)</label>
+                <input type="text" class="form-control" id="apellidos" value="@Model.Apellido" disabled>
+            </div>
+        </div>
+
+        <!-- Correo Electrónico -->
+        <div class="mb-3">
+            <label for="correo" class="form-label">Correo electrónico</label>
+            <input type="email" class="form-control" id="correo" value="@Model.Correo" disabled>
+        </div>
+
+        <!-- Rol -->
+        <div class="mb-3">
+            <label for="rol" class="form-label">Rol</label>
+            <input type="text" class="form-control" id="rol" value="@Model.Rol.Nombre" disabled>
+        </div>
+    </form>
+</div>

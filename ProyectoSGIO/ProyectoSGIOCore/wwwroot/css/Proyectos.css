@@ -1,0 +1,401 @@
+﻿/* Títulos */
+h2, h3 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 16px;
+}
+
+h2 {
+    font-size: 28px;
+}
+
+h3 {
+    font-size: 24px;
+}
+
+.section-title {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #007BFF;
+    padding-bottom: 5px;
+}
+
+.project-name {
+    font-weight: bold;
+    color: #007BFF;
+}
+
+.project-details {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Labels */
+.mb-3 label {
+    font-weight: bold;
+}
+
+/* Tarjeta de cada fase */
+.fase-card {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 20px 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+    /* Hover para las tarjetas de fase, desactivado en CrearProyecto */
+    .fase-card:hover {
+        transform: scale(1.01);
+    }
+
+.crear-proyecto-container .fase-card:hover {
+    transform: none;
+}
+
+.agregar-tarea-container .fase-card:hover {
+    transform: none;
+}
+
+/* Contenedor de desplazamiento para el contenido principal */
+.content-scroll-container {
+    max-height: 75vh;
+    overflow-y: auto;
+    padding-right: 8px;
+    margin-bottom: 20px;
+}
+
+    /* Estilos para personalizar la barra de desplazamiento */
+    .content-scroll-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .content-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .content-scroll-container::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+
+        .content-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+/* Encabezado de fase */
+.fase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 12px;
+}
+
+    .fase-header label {
+        margin-right: 8px;
+    }
+
+    .fase-header input[type="text"] {
+        flex: 1;
+        padding: 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .fase-header h4 {
+        margin: 0;
+        color: #0275d8;
+    }
+
+/* Botón de eliminación de fase */
+.btn-delete-phase,
+.btn-delete {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+    .btn-delete-phase:hover,
+    .btn-delete:hover {
+        background-color: #c82333;
+    }
+
+    .btn-delete-phase i,
+    .btn-delete i {
+        font-size: 16px;
+    }
+
+/* Contenedor de tareas */
+.tarea-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    position: relative;
+}
+
+.tarea-info {
+    flex: 1;
+    padding-right: 10px;
+}
+
+.tarea-item input[type="text"],
+.tarea-item input[type="date"] {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/*Boton para eliminar tarea*/
+.eliminar-tarea-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 25px;
+    width: 25px;
+    margin: 0 8px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+    .eliminar-tarea-btn:hover {
+        background-color: #c82333;
+    }
+
+    .eliminar-tarea-btn i {
+        color: inherit;
+        font-size: 16px;
+    }
+
+    .eliminar-tarea-btn:focus {
+        outline: none;
+    }
+
+
+/* Contenedor con desplazamiento para las fases */
+.fases-scroll-container {
+    max-height: 850px;
+    overflow-y: auto;
+    padding-right: 8px;
+    margin-bottom: 20px;
+}
+
+    .fases-scroll-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .fases-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .fases-scroll-container::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+
+        .fases-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+/* Contenedor de detalles del proyecto */
+.project-details {
+    text-align: center;
+    margin-bottom: 24px;
+    font-size: 16px;
+    color: #555;
+}
+
+/* Listado de tareas */
+.tareas-list ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.agregar-tarea-container {
+    margin-top: 20px;
+    margin-bottom: 40px;
+}
+
+.tareas-list li {
+    background-color: #f9f9f9;
+    margin-bottom: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tareas-list button:hover {
+    background-color: #fff;
+}
+
+.tareas-list li:hover {
+    background-color: #0275d864;
+}
+
+/* Botones */
+.header-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+}
+
+.table-container {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 1000px;
+    margin-bottom: 20px;
+}
+
+    .table-container .styled-table td a.btn {
+        margin: 0;
+    }
+
+.btn-outline-primary {
+    color: #0275d8;
+    border-color: #0275d8;
+    margin-top: 12px;
+}
+
+    .btn-outline-primary:hover {
+        background-color: #0275d8;
+        color: #ffffff;
+    }
+
+/* Tabla estilizada */
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+    .styled-table thead tr {
+        background-color: #0275d8;
+        color: #ffffff;
+        text-align: left;
+    }
+
+    .styled-table th,
+    .styled-table td {
+        padding: 12px 15px;
+    }
+
+    .styled-table tbody tr {
+        border-bottom: 1px solid #dddddd;
+        background-color: #f9f9f9;
+    }
+
+        .styled-table tbody tr:hover {
+            background-color: #e6f2ff;
+        }
+
+.return-button {
+    text-align: center;
+    margin-top: 24px;
+}
+
+    .return-button .btn-secondary {
+        padding: 10px 20px;
+    }
+
+/* Contenedor de desplazamiento para el contenido principal */
+.content-scroll-container {
+    max-height: 75vh;
+    overflow-y: auto;
+    padding-right: 8px;
+    margin-bottom: 20px;
+}
+
+/* Customize the label (the checkbox-btn) */
+.checkbox-btn {
+    display: block;
+    position: relative;
+    padding-left: 30px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+    .checkbox-btn input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+    .checkbox-btn label {
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+.checkmark {
+    margin: -7.5px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 25px;
+    width: 25px;
+    border: 2.5px solid #0275d8;
+    transition: .2s linear;
+}
+
+.checkbox-btn input:checked ~ .checkmark {
+    background-color: transparent;
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    visibility: hidden;
+    opacity: 0;
+    left: 50%;
+    top: 40%;
+    width: 10px;
+    height: 14px;
+    border: 2px solid #0ea021;
+    filter: drop-shadow(0px 0px 10px #0ea021);
+    border-width: 0 2.5px 2.5px 0;
+    transition: .2s linear;
+    transform: translate(-50%, -50%) rotate(-90deg) scale(0.2);
+}
+
+.checkbox-btn input:checked ~ .checkmark:after {
+    visibility: visible;
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    animation: pulse 1s ease-in;
+}
+
+.checkbox-btn input:checked ~ .checkmark {
+    transform: rotate(45deg);
+    border: none;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) rotate(0deg) scale(1.6);
+    }
+}

@@ -1,0 +1,30 @@
+﻿@model ProyectoSGIOCore.Models.Proveedor
+@{
+    ViewBag.Title = "RegistroProveedor";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Registrar Nuevo Proveedor</h2>
+
+    <form asp-action="RegistroProveedor" asp-controller="Proveedores" method="post">
+        <div class="mb-3">
+            <label for="nombreProveedor" class="form-label">Nombre del Proveedor</label>
+            <input asp-for="Nombre" class="form-control" id="nombreProveedor" placeholder="Nombre del proveedor" required>
+        </div>
+        <div class="mb-3">
+            <label for="correoProveedor" class="form-label">Correo Electrónico</label>
+            <input asp-for="Correo" class="form-control" id="correoProveedor" placeholder="ejemplo@correo.com" required>
+        </div>
+        <div class="mb-3">
+            <label for="telefonoProveedor" class="form-label">Número de Teléfono</label>
+            <input asp-for="Telefono" class="form-control" id="telefonoProveedor" placeholder="1234567890" required>
+        </div>
+        <div class="mb-3">
+            <label for="direccionProveedor" class="form-label">Dirección</label>
+            <input asp-for="Direccion" class="form-control" id="direccionProveedor" placeholder="Dirección del proveedor" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Registrar Proveedor</button>
+    </form>
+</div>

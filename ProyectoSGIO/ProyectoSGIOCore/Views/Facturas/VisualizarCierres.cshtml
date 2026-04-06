@@ -1,0 +1,56 @@
+﻿@model IEnumerable<ProyectoSGIOCore.Models.CierreFinanciero>
+
+@{
+    ViewBag.Title = "Visualizar Cierres Financieros Anuales";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Cierres Financieros Anuales</h2>
+
+    <div class="text-end mb-3">
+        <a href="~/CierresFinancieros/RegistrarCierre" class="btn btn-primary">Registrar cierre</a>
+    </div>
+
+    <div class="table-responsive">
+        <table id="cierresAnualesTable" class="table table-striped table-hover table-bordered table-custom">
+            <thead class="table-primary">
+                <tr>
+                    <th class="text-center">ID</th>
+                    <th class="text-center">Año</th>
+                    <th class="text-center">Fecha Cierre</th>
+                    <th class="text-center">Total Ingresos</th>
+                    <th class="text-center">Total Egresos</th>
+                    <th class="text-center">Utilidad</th>
+                    <th class="text-center">Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cierre in Model)
+                {
+                    <tr class="text-center">
+                        <td>@cierre.IdCierre</td>
+                        <td>@cierre.Anio</td>
+                        <td>@cierre.FechaCierre.ToShortDateString()</td>
+                        <td>@cierre.TotalIngresos.ToString("C")</td>
+                        <td>@cierre.TotalEgresos.ToString("C")</td>
+                        <td>@cierre.Utilidad.ToString("C")</td>
+                        <td>@cierre.Observaciones</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $("#cierresAnualesTable").DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json"
+                }
+            });
+        });
+    </script>
+}

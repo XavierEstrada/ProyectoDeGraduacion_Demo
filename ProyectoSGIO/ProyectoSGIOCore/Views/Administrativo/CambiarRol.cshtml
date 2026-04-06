@@ -1,0 +1,26 @@
+﻿@model ProyectoSGIOCore.Models.Usuario
+@{
+    ViewData["Title"] = "Cambiar Rol";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container my-4">
+    <h2 class="text-center">Cambiar Rol del usuario: @Model.Nombre @Model.Apellido / ID @Model.IdUsuario</h2>
+
+    <form asp-action="CambiarRol" method="post" class="text-center">
+        <input type="hidden" name="id" value="@Model.IdUsuario" />
+
+        <div class="mb-3">
+            <label for="nuevoRolId" class="form-label">Selecciona el nuevo rol:</label>
+            <select class="form-select mx-auto" name="nuevoRolId" id="nuevoRolId" required>
+                @foreach (var rol in ViewBag.Roles)
+                {
+                    <option value="@rol.IdRol">@rol.Nombre</option>
+                }
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Cambiar Rol</button>
+        <a href="@Url.Action("VisualizarUsuarios", "Administrativo")" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
