@@ -137,6 +137,36 @@ namespace ProyectoSGIOCore.Controllers
             return View(proyecto);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> EditarProyecto(int id)
+        {
+            var proyecto = await _dbContext.Proyectos.FindAsync(id);
+            if (proyecto == null)
+            {
+                TempData["MensajeError"] = "Proyecto no encontrado.";
+                return RedirectToAction("Proyectos");
+            }
+            return View(proyecto);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditarProyecto(Proyecto entidad)
+        {
+            var proyecto = await _dbContext.Proyectos.FindAsync(entidad.Id);
+            if (proyecto == null)
+            {
+                TempData["MensajeError"] = "Proyecto no encontrado.";
+                return RedirectToAction("Proyectos");
+            }
+
+            proyecto.Nombre = entidad.Nombre;
+            proyecto.Estado = entidad.Estado;
+            await _dbContext.SaveChangesAsync();
+
+            TempData["MensajeExito"] = $"Proyecto '{proyecto.Nombre}' editado correctamente.";
+            return RedirectToAction("Proyectos");
+        }
+
         [HttpPost]
         public IActionResult EliminarProyecto(int proyectoId)
         {

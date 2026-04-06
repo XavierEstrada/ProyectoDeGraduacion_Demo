@@ -8,6 +8,21 @@
 <div class="container mt-5">
     <h2 class="text-center mb-4">Cierres Financieros Anuales</h2>
 
+    @if (TempData["MensajeExito"] != null)
+    {
+        <div class="alert alert-success text-center alert-dismissible fade show" role="alert">
+            @TempData["MensajeExito"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["MensajeError"] != null)
+    {
+        <div class="alert alert-danger text-center alert-dismissible fade show" role="alert">
+            @TempData["MensajeError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="text-end mb-3">
         <a href="~/CierresFinancieros/RegistrarCierre" class="btn btn-primary">Registrar cierre</a>
     </div>
@@ -23,6 +38,7 @@
                     <th class="text-center">Total Egresos</th>
                     <th class="text-center">Utilidad</th>
                     <th class="text-center">Observaciones</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -36,10 +52,42 @@
                         <td>@cierre.TotalEgresos.ToString("C")</td>
                         <td>@cierre.Utilidad.ToString("C")</td>
                         <td>@cierre.Observaciones</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm btn-eliminar-cierre"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalEliminarCierre"
+                                    data-id="@cierre.IdCierre"
+                                    data-anio="@cierre.Anio"
+                                    title="Eliminar">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="modalEliminarCierre" tabindex="-1" aria-labelledby="modalEliminarCierreLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEliminarCierreLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar el cierre del año <strong><span id="anioEliminar"></span></strong>? Esta acción no se puede deshacer.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminarCierre" method="post" asp-action="EliminarCierre" asp-controller="CierresFinancieros">
+                    <input type="hidden" id="idCierreEliminar" name="id" />
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -50,6 +98,11 @@
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json"
                 }
+            });
+
+            $(".btn-eliminar-cierre").on("click", function () {
+                $("#anioEliminar").text($(this).data("anio"));
+                $("#idCierreEliminar").val($(this).data("id"));
             });
         });
     </script>

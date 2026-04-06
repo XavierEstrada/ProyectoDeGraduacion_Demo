@@ -93,6 +93,55 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> EditarFactura(int id)
+        {
+            var factura = await _dbContext.Facturas.FindAsync(id);
+            if (factura == null)
+            {
+                TempData["MensajeError"] = "Factura no encontrada.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+            ViewBag.Proveedores = new SelectList(_dbContext.Proveedores, "IdProveedor", "Nombre", factura.IdProveedor);
+            return View(factura);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditarFactura(FacturaProveedor entidad)
+        {
+            var factura = await _dbContext.Facturas.FindAsync(entidad.IdFactura);
+            if (factura == null)
+            {
+                TempData["MensajeError"] = "Factura no encontrada.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+
+            factura.IdProveedor = entidad.IdProveedor;
+            factura.FechaEmision = entidad.FechaEmision;
+            factura.MontoTotal = entidad.MontoTotal;
+            factura.Descripcion = entidad.Descripcion;
+
+            await _dbContext.SaveChangesAsync();
+            TempData["MensajeExito"] = $"Factura '{factura.NumeroFactura}' editada correctamente.";
+            return RedirectToAction("VisualizarFacturas");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EliminarFactura(int id)
+        {
+            var factura = await _dbContext.Facturas.FindAsync(id);
+            if (factura == null)
+            {
+                TempData["MensajeError"] = "Factura no encontrada.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+
+            _dbContext.Facturas.Remove(factura);
+            await _dbContext.SaveChangesAsync();
+            TempData["MensajeExito"] = $"Factura '{factura.NumeroFactura}' eliminada correctamente.";
+            return RedirectToAction("VisualizarFacturas");
+        }
+
+        [HttpGet]
         public IActionResult DescargarFacturasHTML()
         {
             // Obtener la lista de facturas con su proveedor

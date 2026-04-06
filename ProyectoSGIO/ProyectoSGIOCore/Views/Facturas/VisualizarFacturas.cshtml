@@ -8,6 +8,21 @@
 <div class="container mt-5">
     <h2 class="text-center mb-4">Facturas de Proveedores</h2>
 
+    @if (TempData["MensajeExito"] != null)
+    {
+        <div class="alert alert-success text-center alert-dismissible fade show" role="alert">
+            @TempData["MensajeExito"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["MensajeError"] != null)
+    {
+        <div class="alert alert-danger text-center alert-dismissible fade show" role="alert">
+            @TempData["MensajeError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="text-end mb-3">
         <a asp-action="RegistroFactura" class="btn btn-primary">Registrar factura</a>
         <a asp-action="DescargarFacturasHTML" class="btn btn-danger">Descargar HTML</a>
@@ -37,6 +52,7 @@
                     <th class="text-center">Monto Total</th>
                     <th class="text-center">Descripción</th>
                     <th class="text-center">Impuesto</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -51,10 +67,45 @@
                         <td>@factura.MontoTotal</td>
                         <td>@factura.Descripcion</td>
                         <td>@impuesto.ToString("C")</td>
+                        <td>
+                            <a asp-action="EditarFactura" asp-route-id="@factura.IdFactura" class="btn btn-warning btn-sm me-1" title="Editar">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <button class="btn btn-danger btn-sm btn-eliminar-factura"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalEliminarFactura"
+                                    data-id="@factura.IdFactura"
+                                    data-numero="@factura.NumeroFactura"
+                                    title="Eliminar">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="modalEliminarFactura" tabindex="-1" aria-labelledby="modalEliminarFacturaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEliminarFacturaLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar la factura <strong><span id="numeroFacturaEliminar"></span></strong>? Esta acción no se puede deshacer.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminarFactura" method="post" asp-action="EliminarFactura">
+                    <input type="hidden" id="idFacturaEliminar" name="id" />
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -65,6 +116,11 @@
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json"
                 }
+            });
+
+            $(".btn-eliminar-factura").on("click", function () {
+                $("#numeroFacturaEliminar").text($(this).data("numero"));
+                $("#idFacturaEliminar").val($(this).data("id"));
             });
         });
     </script>

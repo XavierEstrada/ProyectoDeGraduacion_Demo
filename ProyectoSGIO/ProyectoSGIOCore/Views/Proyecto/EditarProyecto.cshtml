@@ -1,0 +1,36 @@
+@model ProyectoSGIOCore.Models.Proyecto
+@{
+    ViewBag.Title = "Editar Proyecto";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="~/css/proyectos.css" rel="stylesheet" />
+
+<div class="container my-4">
+    <div class="form-container">
+        <h2 class="text-center mb-4">Editar Proyecto</h2>
+
+        <form asp-action="EditarProyecto" asp-controller="Proyecto" method="post">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="FechaCreacion" />
+
+            <div class="mb-3">
+                <label class="form-label">Nombre del Proyecto</label>
+                <input type="text" asp-for="Nombre" class="form-control" required />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Estado</label>
+                @Html.DropDownListFor(
+                    model => model.Estado,
+                    new SelectList(Enum.GetValues(typeof(ProyectoSGIOCore.Models.EstadoProyecto))),
+                    new { @class = "form-select" })
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100">Guardar Cambios</button>
+                <a asp-action="Proyectos" class="btn btn-secondary w-100">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

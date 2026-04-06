@@ -9,8 +9,16 @@
 
 @if (TempData["MensajeExito"] != null)
 {
-    <div class="alert alert-success text-center mt-3" role="alert">
+    <div class="alert alert-success text-center mt-3 alert-dismissible fade show" role="alert">
         @TempData["MensajeExito"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["MensajeError"] != null)
+{
+    <div class="alert alert-danger text-center mt-3 alert-dismissible fade show" role="alert">
+        @TempData["MensajeError"]
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
@@ -71,6 +79,7 @@
                         @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
                         {
                             <a href="@Url.Action("GestionarProyecto", "Proyecto", new { id = proyecto.Id })" class="btn btn-outline-primary btn-sm">Gestionar</a>
+                            <a href="@Url.Action("EditarProyecto", "Proyecto", new { id = proyecto.Id })" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil-square"></i></a>
                             <a href="@Url.Action("AsignarCliente", "Proyecto", new { id = proyecto.Id })" class="btn btn-outline-dark btn-sm">Asignar Cliente</a>
                             <a href="@Url.Action("AsignarHito", "Proyecto", new { id = proyecto.Id })" class="btn btn-outline-dark btn-sm">Asignar Hitos</a>
                             <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarProyecto_@proyecto.Id">Eliminar</button>

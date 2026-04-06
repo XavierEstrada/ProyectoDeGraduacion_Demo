@@ -91,6 +91,26 @@ namespace ProyectoSGIOCore.Controllers
             return RedirectToAction("VisualizarCierresMensuales");
         }
 
+        [HttpPost]
+        public IActionResult EliminarCierre(int id)
+        {
+            var cierre = _dbContext.CierresFinancieros.Find(id);
+            if (cierre == null)
+            {
+                TempData["MensajeError"] = "Cierre financiero no encontrado.";
+                return RedirectToAction("VisualizarCierres");
+            }
+
+            bool esMensual = cierre.Mes > 0;
+            _dbContext.CierresFinancieros.Remove(cierre);
+            _dbContext.SaveChanges();
+            TempData["MensajeExito"] = "Cierre financiero eliminado correctamente.";
+
+            return esMensual
+                ? RedirectToAction("VisualizarCierresMensuales")
+                : RedirectToAction("VisualizarCierres");
+        }
+
         [HttpGet]
         public IActionResult VisualizarCierresMensuales()
         {
