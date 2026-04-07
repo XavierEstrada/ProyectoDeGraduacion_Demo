@@ -49,6 +49,7 @@ namespace ProyectoSGIOCore.Controllers
             return RedirectToAction("VisualizarCierres");
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult VisualizarCierres()
         {
@@ -111,6 +112,7 @@ namespace ProyectoSGIOCore.Controllers
                 : RedirectToAction("VisualizarCierres");
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult VisualizarCierresMensuales()
         {

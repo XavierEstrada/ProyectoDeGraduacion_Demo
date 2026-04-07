@@ -16,6 +16,7 @@ namespace ProyectoSGIOCore.Controllers
             _dbContext = dbContext;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> VisualizarInventario()
         {

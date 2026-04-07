@@ -20,6 +20,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         //Proyectos
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Proyectos()
         {
@@ -211,6 +212,7 @@ namespace ProyectoSGIOCore.Controllers
             return RedirectToAction("Proyectos");
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GestionarProyecto(int id)
         {
@@ -249,6 +251,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         //Dasboard
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Dashboard(int id)
         {
@@ -445,6 +448,7 @@ namespace ProyectoSGIOCore.Controllers
             return RedirectToAction("GestionarProyecto", new { id = fase.ProyectoId });
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> ObtenerFase(int faseId)
         {

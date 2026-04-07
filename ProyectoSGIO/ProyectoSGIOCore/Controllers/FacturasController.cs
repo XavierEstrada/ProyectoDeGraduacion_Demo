@@ -72,6 +72,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult VisualizarFacturas()
         {

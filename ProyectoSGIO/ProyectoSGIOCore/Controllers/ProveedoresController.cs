@@ -27,6 +27,7 @@ namespace ProyectoSGIOCore.Controllers
             _dbContext = appDBContext;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult VisualizarProveedores()
         {

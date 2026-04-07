@@ -1,67 +1,86 @@
-﻿@model IEnumerable<ProyectoSGIOCore.Models.Empleado>
+@model IEnumerable<ProyectoSGIOCore.Models.Empleado>
 @{
-    ViewData["Title"] = "Visualizar Empleados";
+    ViewData["Title"] = "Empleados";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    int total = Model.Count();
 }
 
-<div class="container my-4">
-    <h2 class="text-center mb-4">Empleados registrados en el sistema</h2>
+@if (TempData["MensajeExito"] != null)
+{
+    <div class="sgio-alert success"><i class="bi bi-check-circle-fill"></i> @TempData["MensajeExito"]</div>
+}
+@if (TempData["MensajeError"] != null)
+{
+    <div class="sgio-alert danger"><i class="bi bi-exclamation-circle-fill"></i> @TempData["MensajeError"]</div>
+}
 
-    @if (TempData["MensajeExito"] != null)
-    {
-        <div class="alert alert-success text-center alert-dismissible fade show" role="alert">
-            @TempData["MensajeExito"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    @if (TempData["MensajeError"] != null)
-    {
-        <div class="alert alert-danger text-center alert-dismissible fade show" role="alert">
-            @TempData["MensajeError"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <div class="text-end mb-3">
-        <a asp-controller="Empleado" asp-action="CrearEmpleado" class="btn btn-primary">Registrar nuevo empleado</a>
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-left">
+        <h1 class="page-header-title"><i class="bi bi-person-badge-fill me-2 text-primary"></i>Empleados</h1>
+        <p class="page-header-subtitle">Personal registrado en el sistema</p>
     </div>
+    @if (User.Identity.IsAuthenticated)
+    {
+        <div class="page-header-actions">
+            <a asp-controller="Empleado" asp-action="CrearEmpleado" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> Nuevo Empleado
+            </a>
+        </div>
+    }
+</div>
 
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-mini">
+        <div class="stat-mini-icon blue"><i class="bi bi-people"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@total</div>
+            <div class="stat-mini-label">Total empleados</div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="table-card">
     <div class="table-responsive">
-        <table id="empleadosTable" class="table table-striped table-hover table-bordered table-custom">
-            <thead class="table-primary">
+        <table id="empleadosTable" class="sgio-table">
+            <thead>
                 <tr>
-                    <th class="text-center">ID</th>
-                    <th class="text-center">Nombre</th>
-                    <th class="text-center">Apellido</th>
-                    <th class="text-center">Correo</th>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>Correo</th>
                     <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var empleado in Model)
                 {
-                    <tr class="text-center">
-                        <td>@empleado.IdEmpleado</td>
-                        <td>@empleado.Nombre</td>
+                    <tr>
+                        <td><span class="text-muted">#@empleado.IdEmpleado</span></td>
+                        <td><strong>@empleado.Nombre</strong></td>
                         <td>@empleado.Apellido</td>
                         <td>@empleado.Correo</td>
-                        <td>
-                            <!-- Botón de editar -->
-                            <a asp-action="EditarEmpleado" asp-route-id="@empleado.IdEmpleado" class="btn btn-warning me-1" title="Editar">
-                                <i class="bi bi-pencil-square"></i>
-                            </a>
-
-                            <!-- Botón de eliminar con modal -->
-                            <button class="btn btn-danger btn-eliminar"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalEliminar"
-                                    data-id="@empleado.IdEmpleado"
-                                    data-nombre="@empleado.Nombre"
-                                    data-apellido="@empleado.Apellido">
-                                <i class="bi bi-trash-fill"></i>
-                            </button>
-
+                        <td class="text-center">
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                <a asp-action="EditarEmpleado" asp-route-id="@empleado.IdEmpleado" class="btn-action edit me-1" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button class="btn-action delete btn-eliminar"
+                                        data-bs-toggle="modal" data-bs-target="#modalEliminar"
+                                        data-id="@empleado.IdEmpleado"
+                                        data-nombre="@empleado.Nombre"
+                                        data-apellido="@empleado.Apellido"
+                                        title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Solo lectura</span>
+                            }
                         </td>
                     </tr>
                 }
@@ -70,47 +89,42 @@
     </div>
 </div>
 
-<!-- Modal de confirmación de eliminación -->
-<div class="modal fade" id="modalEliminar" tabindex="-1" aria-labelledby="modalEliminarLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalEliminarLabel">Confirmar eliminación</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                ¿Estás seguro de que deseas eliminar al empleado <strong><span id="nombreEmpleado"></span> <span id="apellidoEmpleado"></span></strong>?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form id="formEliminarEmpleado" method="post" asp-action="EliminarEmpleadoConfirmado">
-                    <input type="hidden" id="idEmpleadoEliminar" name="id" />
-                    <button type="submit" class="btn btn-danger">Eliminar</button>
-                </form>
+<!-- Modal Eliminar -->
+@if (User.Identity.IsAuthenticated)
+{
+    <div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro de que deseas eliminar al empleado <strong><span id="nombreEmpleado"></span> <span id="apellidoEmpleado"></span></strong>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form asp-action="EliminarEmpleadoConfirmado" method="post">
+                        <input type="hidden" id="idEmpleadoEliminar" name="id" />
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 @section scripts {
     <script>
         $(document).ready(function () {
             $("#empleadosTable").DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json"
-                }
+                language: { url: "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json" },
+                pageLength: 10
             });
-
-            // Capturar el ID, nombre y apellido del empleado al abrir el modal
             $(".btn-eliminar").on("click", function () {
-                let empleadoId = $(this).data("id");
-                let nombreEmpleado = $(this).data("nombre");
-                let apellidoEmpleado = $(this).data("apellido");
-
-                // Actualizar el contenido del modal
-                $("#nombreEmpleado").text(nombreEmpleado);
-                $("#apellidoEmpleado").text(apellidoEmpleado);
-                $("#idEmpleadoEliminar").val(empleadoId);
+                $("#nombreEmpleado").text($(this).data("nombre"));
+                $("#apellidoEmpleado").text($(this).data("apellido"));
+                $("#idEmpleadoEliminar").val($(this).data("id"));
             });
         });
     </script>

@@ -1,89 +1,331 @@
-﻿@using System.Security.Claims
+@using System.Security.Claims
 @{
-    ViewBag.Title = "Home Page";
+    ViewBag.Title = "SGIO - Inicio";
     Layout = "~/Views/Shared/_Layout.cshtml";
-
+    var userName = User.Claims.Where(c => c.Type == ClaimTypes.Name).Select(c => c.Value).SingleOrDefault();
 }
 
-<div class="text-center mt-5">
-    <h1 class="fw-bold text-primary">¡ Bienvenido @User.Claims.Where(c => c.Type == ClaimTypes.Name).Select(c => c.Value).SingleOrDefault() !</h1>
-    <p class="lead text-muted">Nos alegra tenerte de vuelta. Explora el sistema para ver los avances y novedades de tu proyecto.</p>
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #3e64ff 0%, #1a3fc4 100%);
+        color: white;
+        padding: 5rem 2rem 4rem;
+        margin: -1.5rem -1.5rem 0;
+        border-radius: 0 0 2rem 2rem;
+    }
+
+    .hero-section h1 {
+        color: white;
+        font-weight: 700;
+        font-size: 2.6rem;
+        line-height: 1.2;
+    }
+
+    .hero-section p {
+        color: rgba(255,255,255,0.85);
+        font-size: 1.15rem;
+    }
+
+    .hero-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.15);
+        color: white;
+        font-size: 0.8rem;
+        padding: 0.3rem 0.9rem;
+        border-radius: 2rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 1.2rem;
+        font-weight: 600;
+    }
+
+    .btn-hero-primary {
+        background: white;
+        color: #3e64ff;
+        font-weight: 700;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        border: none;
+        font-size: 1rem;
+        transition: .3s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-hero-primary:hover {
+        background: #f0f4ff;
+        color: #1a3fc4;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    .btn-hero-outline {
+        background: transparent;
+        color: white;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        border: 2px solid rgba(255,255,255,0.6);
+        font-size: 1rem;
+        transition: .3s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-hero-outline:hover {
+        background: rgba(255,255,255,0.15);
+        border-color: white;
+        color: white;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(62, 100, 255, 0.1);
+        border: 1px solid rgba(62, 100, 255, 0.08);
+        transition: .3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(62, 100, 255, 0.18);
+    }
+
+    .stat-number {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #3e64ff;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: #888;
+        margin-top: 0.4rem;
+        font-weight: 500;
+    }
+
+    .feature-card {
+        background: white;
+        border-radius: 1.2rem;
+        padding: 2rem;
+        height: 100%;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.06);
+        border: 1px solid #f0f0f0;
+        transition: .35s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .feature-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 35px rgba(62, 100, 255, 0.15);
+        border-color: rgba(62, 100, 255, 0.2);
+    }
+
+    .feature-icon {
+        width: 54px;
+        height: 54px;
+        background: linear-gradient(135deg, #3e64ff15, #3e64ff25);
+        border-radius: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #3e64ff;
+        margin-bottom: 1.2rem;
+    }
+
+    .feature-card h5 {
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 0.6rem;
+    }
+
+    .feature-card p {
+        color: #777;
+        font-size: 0.92rem;
+        line-height: 1.7;
+        margin: 0;
+    }
+
+    .demo-section {
+        background: linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
+        border: 1px solid rgba(62, 100, 255, 0.12);
+        border-radius: 1.5rem;
+        padding: 3rem 2rem;
+        text-align: center;
+    }
+
+    .demo-section h2 {
+        color: #1a1a2e;
+        font-weight: 700;
+    }
+
+    .credential-box {
+        background: white;
+        border-radius: 0.8rem;
+        padding: 1rem 1.5rem;
+        display: inline-block;
+        box-shadow: 0 2px 12px rgba(62, 100, 255, 0.1);
+        border: 1px solid rgba(62, 100, 255, 0.1);
+        font-family: monospace;
+        font-size: 0.95rem;
+        color: #333;
+    }
+
+    .credential-box span {
+        color: #3e64ff;
+        font-weight: 700;
+    }
+
+    .section-title {
+        font-weight: 700;
+        color: #1a1a2e;
+        font-size: 1.8rem;
+    }
+
+    .section-subtitle {
+        color: #888;
+        font-size: 1rem;
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <span class="hero-badge">Sistema de Gestión Empresarial</span>
+                @if (!string.IsNullOrEmpty(userName))
+                {
+                    <h1>¡Bienvenido de vuelta, @userName!</h1>
+                    <p class="mb-4">Gestiona proyectos, inventario, proveedores y finanzas desde un solo lugar.</p>
+                    <a asp-controller="Proyecto" asp-action="Proyectos" class="btn-hero-primary me-3">Ver Proyectos</a>
+                }
+                else
+                {
+                    <h1>SGIO — Gestión Integral de Obras</h1>
+                    <p class="mb-4">Plataforma completa para administrar proyectos de construcción: fases, tareas, hitos, inventario, proveedores y cierres financieros.</p>
+                    <a asp-controller="Acceso" asp-action="IniciarSesion" class="btn-hero-primary me-3">Iniciar Sesión</a>
+                    <a asp-controller="Proyecto" asp-action="Proyectos" class="btn-hero-outline">Explorar Demo</a>
+                }
+            </div>
+            <div class="col-lg-5 d-none d-lg-flex justify-content-center">
+                <img src="~/img/system.gif" alt="SGIO Sistema" style="max-height:240px; border-radius:1rem; opacity:0.92;" />
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Sección Uno: Inicio del Proyecto -->
-<section class="py-5 bg-light" id="scroll-target">
-    <div class="container px-5 my-5">
-        <div class="row gx-5 align-items-center">
-            <div class="card shadow-sm border-0">
-                <div class="content">
-                    <p class="heading fw-bolder">Nuestro sistema</p>
-                    <p class="para lead fw-normal">
-                        Este sistema de gestión nace con el objetivo de optimizar la experiencia del usuario, brindando una herramienta intuitiva y transparente para visualizar el avance de su proyecto.
-                        A través de una interfaz amigable y accesible, los usuarios podrán seguir cada etapa del proceso de manera clara y sencilla.
-                    </p>
-                </div>
+<!-- Stats Row -->
+<div class="container my-5">
+    <div class="row g-3">
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">9</div>
+                <div class="stat-label">Módulos del Sistema</div>
             </div>
-            <div class="col-lg-6">
-                <img class="img-fluid rounded mb-5 mb-lg-0" src="~/img/system.gif" alt="Inicio del proyecto" />
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">4</div>
+                <div class="stat-label">Roles de Usuario</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">2FA</div>
+                <div class="stat-label">Autenticación Segura</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">PDF</div>
+                <div class="stat-label">Exportación de Reportes</div>
             </div>
         </div>
     </div>
-</section>
+</div>
 
-<!-- Sección Dos: Crecimiento y Futuro -->
-<section class="py-5 bg-light" id="scroll-target">
-    <div class="container px-5 my-5">
-        <div class="row gx-5 align-items-center">
-            <div class="col-lg-6">
-                <img class="img-fluid rounded mb-5 mb-lg-0" src="~/img/System2.gif" alt="Crecimiento y futuro" />
+<!-- Features Section -->
+<div class="container mb-5">
+    <div class="text-center mb-4">
+        <h2 class="section-title">Módulos Principales</h2>
+        <p class="section-subtitle">Todo lo que necesita para gestionar su empresa constructora</p>
+    </div>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-house-gear-fill"></i></div>
+                <h5>Gestión de Proyectos</h5>
+                <p>Organice proyectos en fases y tareas, asigne hitos a empleados, controle el progreso y visualice dashboards en tiempo real.</p>
             </div>
-            <div class="card shadow-sm border-0">
-                <div class="content ">
-                    <p class="heading fw-bolder">Funciones Principales</p>
-                    <p class="para lead fw-normal">
-                        Nuestro sistema le permitirá explorar en detalle el proyecto en desarrollo. Acceda a imágenes de planos, renders, hitos alcanzados y pendientes, y estimaciones de costos y presupuestos actualizados.
-                        Además, podrá visualizar el porcentaje de avance y otros datos clave para un seguimiento integral del proyecto.
-                    </p>
-                </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-boxes"></i></div>
+                <h5>Inventario y Proveedores</h5>
+                <p>Controle el stock de materiales, registre proveedores, gestione facturas y exporte reportes en HTML y CSV.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-calculator-fill"></i></div>
+                <h5>Cierres Financieros</h5>
+                <p>Registre cierres anuales y mensuales, calcule ingresos, egresos y utilidades de forma automática por período.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-people-fill"></i></div>
+                <h5>Gestión de Usuarios</h5>
+                <p>Administre usuarios con roles diferenciados: Administrador, Supervisor, Empleado y Usuario cliente.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-shield-lock-fill"></i></div>
+                <h5>Seguridad Avanzada</h5>
+                <p>Autenticación con 2FA, cifrado AES-256 de contraseñas, recuperación de cuenta por correo y control de intentos.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-person-fill-gear"></i></div>
+                <h5>Gestión de Empleados</h5>
+                <p>Registro y administración del personal, asignación a hitos y seguimiento de responsabilidades dentro de cada proyecto.</p>
             </div>
         </div>
     </div>
-</section>
+</div>
 
-<!-- Proyectos Recientes -->
-<section class="py-5" id="proyectos">
-    <div class="container px-5">
-        <h2 class="fw-bolder text-center mb-5">Nuestros Proyectos Recientes</h2>
-        <div class="row gx-5">
-            <div class="col-lg-4 mb-4">
-                <img class="img-fluid rounded" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
-                <h5 class="mt-3">Proyecto 1</h5>
-                <p class="text-muted">Descripción breve del proyecto.</p>
-            </div>
-            <div class="col-lg-4 mb-4">
-                <img class="img-fluid rounded" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
-                <h5 class="mt-3">Proyecto 2</h5>
-                <p class="text-muted">Descripción breve del proyecto.</p>
-            </div>
-            <div class="col-lg-4 mb-4">
-                <img class="img-fluid rounded" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
-                <h5 class="mt-3">Proyecto 3</h5>
-                <p class="text-muted">Descripción breve del proyecto.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
+<!-- Demo Access Section -->
 @if (!User.Identity.IsAuthenticated)
 {
-    <section class="py-5 text-center">
-        <div class="container">
-            <h2 class="fw-bold text-primary">¡Regístrate ahora!</h2>
-            <p class="lead text-muted mb-4">Accede a todas las funcionalidades del sistema y gestiona tus proyectos de manera eficiente.</p>
-            <button class="btnRegistro" onclick="location.href='@Url.Action("Registro", "Acceso")'">Registrarse</button>
+    <div class="container mb-5">
+        <div class="demo-section">
+            <i class="bi bi-play-circle-fill text-primary mb-3" style="font-size:2.5rem;"></i>
+            <h2 class="mb-2">Accede al Demo</h2>
+            <p class="text-muted mb-4">Puedes explorar todos los módulos sin iniciar sesión, o ingresar como administrador para manipular datos.</p>
+            <div class="row justify-content-center g-3 mb-4">
+                <div class="col-auto">
+                    <div class="credential-box">
+                        Correo: <span>admin@sgio.com</span>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="credential-box">
+                        Contraseña: <span>Admin1234!</span>
+                    </div>
+                </div>
+            </div>
+            <a asp-controller="Acceso" asp-action="IniciarSesion" class="btn btn-primary px-4 py-2 me-2">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+            </a>
+            <a asp-controller="Proyecto" asp-action="Proyectos" class="btn btn-outline-primary px-4 py-2">
+                <i class="bi bi-eye me-1"></i> Explorar sin cuenta
+            </a>
         </div>
-    </section>
-
-    <br />
-    <br />
+    </div>
 }

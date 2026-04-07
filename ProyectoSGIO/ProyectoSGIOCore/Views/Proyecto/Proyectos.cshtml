@@ -1,115 +1,187 @@
-﻿@model IEnumerable<ProyectoSGIOCore.Models.Proyecto>
-
+@model IEnumerable<ProyectoSGIOCore.Models.Proyecto>
 @{
-    ViewData["Title"] = "Lista de Proyectos";
+    ViewData["Title"] = "Proyectos";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    int total       = Model.Count();
+    int completados = Model.Count(p => p.Estado == ProyectoSGIOCore.Models.EstadoProyecto.Completado);
+    int enProgreso  = Model.Count(p => p.Estado == ProyectoSGIOCore.Models.EstadoProyecto.Progreso);
+    int planif      = Model.Count(p => p.Estado == ProyectoSGIOCore.Models.EstadoProyecto.Planificacion);
 }
 
 <link href="~/css/proyectos.css" rel="stylesheet" />
 
 @if (TempData["MensajeExito"] != null)
 {
-    <div class="alert alert-success text-center mt-3 alert-dismissible fade show" role="alert">
-        @TempData["MensajeExito"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+    <div class="sgio-alert success"><i class="bi bi-check-circle-fill"></i> @TempData["MensajeExito"]</div>
 }
-
 @if (TempData["MensajeError"] != null)
 {
-    <div class="alert alert-danger text-center mt-3 alert-dismissible fade show" role="alert">
-        @TempData["MensajeError"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+    <div class="sgio-alert danger"><i class="bi bi-exclamation-circle-fill"></i> @TempData["MensajeError"]</div>
 }
 
-<!-- Sección: Encabezado del Proyecto -->
-<h2 class="section-title">Proyectos</h2>
-
-<div class="header-actions">
-     @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-left">
+        <h1 class="page-header-title"><i class="bi bi-house-gear-fill me-2 text-primary"></i>Proyectos</h1>
+        <p class="page-header-subtitle">Gestión y seguimiento de proyectos de construcción</p>
+    </div>
+    @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
     {
-        <a asp-action="CrearProyecto" asp-controller="Proyecto" class="btn btn-primary">Crear Proyecto</a>
+        <div class="page-header-actions">
+            <a asp-action="CrearProyecto" asp-controller="Proyecto" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> Nuevo Proyecto
+            </a>
+        </div>
     }
 </div>
 
-<div class="table-container">
-    <table class="styled-table">
-        <thead>
-            <tr>
-                <th class="text-center">Nombre del Proyecto</th>
-                <th class="text-center">Fecha de Creación</th>
-                <th class="text-center">Cliente Asignado</th>
-                <th class="text-center">Costo</th>
-                <th class="text-center">Estado</th>
-                <th class="text-center">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var proyecto in Model)
-            {
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-mini">
+        <div class="stat-mini-icon blue"><i class="bi bi-folder2-open"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@total</div>
+            <div class="stat-mini-label">Total proyectos</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon green"><i class="bi bi-check2-all"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@completados</div>
+            <div class="stat-mini-label">Completados</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon orange"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@enProgreso</div>
+            <div class="stat-mini-label">En progreso</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon purple"><i class="bi bi-clipboard2-check"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@planif</div>
+            <div class="stat-mini-label">En planificación</div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="sgio-table" id="proyectosTable">
+            <thead>
                 <tr>
-                    <td class="text-center">@proyecto.Nombre</td>
-                    <td class="text-center">@proyecto.FechaCreacion.ToShortDateString()</td>
-                    <td class="text-center">
-                        @if (proyecto.Usuario != null)
-                        {
-                            <span>@proyecto.Usuario.Nombre @proyecto.Usuario.Apellido</span>
-                        }
-                        else
-                        {
-                            <span>Usuario sin asignar</span>
-                        }
-                    </td>
-                    <td class="text-center">
-                        @if (proyecto.CostoTotal != null)
-                        {
-                            <span>$@proyecto.CostoTotal.ToString("N2")</span>
-                        }
-                        else
-                        {
-                            <span>No disponible</span>
-                        }
-                    </td>
-                    <td class="text-center">
-                        <!-- Mostrar el estado del proyecto -->
-                        <span>@(proyecto.Estado != 0 ? proyecto.Estado.ToString() : "Estado sin asignar")</span>
-                    </td>
-                    <td class="text-center">
-                        @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
-                        {
-                            <a href="@Url.Action("GestionarProyecto", "Proyecto", new { id = proyecto.Id })" class="btn btn-outline-primary btn-sm">Gestionar</a>
-                            <a href="@Url.Action("EditarProyecto", "Proyecto", new { id = proyecto.Id })" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil-square"></i></a>
-                            <a href="@Url.Action("AsignarCliente", "Proyecto", new { id = proyecto.Id })" class="btn btn-outline-dark btn-sm">Asignar Cliente</a>
-                            <a href="@Url.Action("AsignarHito", "Proyecto", new { id = proyecto.Id })" class="btn btn-outline-dark btn-sm">Asignar Hitos</a>
-                            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarProyecto_@proyecto.Id">Eliminar</button>
-                        }
-                        <a href="@Url.Action("Dashboard", "Proyecto", new { id = proyecto.Id })" class="btn btn-outline-dark btn-sm">Ver Dashboard</a>
-                        
-                    </td>
+                    <th>Proyecto</th>
+                    <th>Fecha Creación</th>
+                    <th>Cliente</th>
+                    <th class="text-center">Costo Total</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
-                <!-- Modal de confirmación de eliminación -->
-                <div class="modal fade modal-lg" id="modalEliminarProyecto_@proyecto.Id" tabindex="-1" aria-labelledby="modalEliminarProyectoLabel_@proyecto.Id" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="modalEliminarProyectoLabel_@proyecto.Id">Confirmar Eliminación</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                            </div>
-                            <div class="modal-body">
-                                ¿Estás seguro de que deseas eliminar el proyecto <strong>@proyecto.Nombre</strong> junto con todas sus fases y tareas? Esta acción no se puede deshacer.
-                            </div>
-                            <div class="modal-footer">
-                                <form asp-action="EliminarProyecto" asp-controller="Proyecto" method="post">
-                                    <input type="hidden" name="proyectoId" value="@proyecto.Id" />
-                                    <button type="submit" class="btn btn-danger">Confirmar</button>
-                                </form>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </thead>
+            <tbody>
+                @foreach (var proyecto in Model)
+                {
+                    string estadoBadgeClass = proyecto.Estado switch {
+                        ProyectoSGIOCore.Models.EstadoProyecto.Completado   => "complete",
+                        ProyectoSGIOCore.Models.EstadoProyecto.Progreso     => "progress",
+                        ProyectoSGIOCore.Models.EstadoProyecto.Planificacion=> "pending",
+                        _                                                    => "pending"
+                    };
+                    <tr>
+                        <td><strong>@proyecto.Nombre</strong></td>
+                        <td>@proyecto.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @if (proyecto.Usuario != null)
+                            {
+                                <span>@proyecto.Usuario.Nombre @proyecto.Usuario.Apellido</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Sin asignar</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (proyecto.CostoTotal != null)
+                            {
+                                <strong>$@proyecto.CostoTotal.ToString("N2")</strong>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="badge-status @estadoBadgeClass">@proyecto.Estado.ToString()</span>
+                        </td>
+                        <td class="text-center">
+                            <a href="@Url.Action("Dashboard", "Proyecto", new { id = proyecto.Id })" class="btn-action view me-1" title="Dashboard">
+                                <i class="bi bi-speedometer2"></i>
+                            </a>
+                            @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
+                            {
+                                <a href="@Url.Action("GestionarProyecto", "Proyecto", new { id = proyecto.Id })" class="btn-action edit me-1" title="Gestionar">
+                                    <i class="bi bi-gear"></i>
+                                </a>
+                                <a href="@Url.Action("EditarProyecto", "Proyecto", new { id = proyecto.Id })" class="btn-action" style="background:#fff7ed;color:#ea580c;" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button class="btn-action delete ms-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalEliminarProyecto_@proyecto.Id"
+                                        title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            }
+                            else if (!User.Identity.IsAuthenticated)
+                            {
+                                <a href="@Url.Action("GestionarProyecto", "Proyecto", new { id = proyecto.Id })" class="btn-action view" title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            }
+                        </td>
+                    </tr>
+
+                    <!-- Modal Eliminar -->
+                    @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
+                    {
+                        <div class="modal fade" id="modalEliminarProyecto_@proyecto.Id" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar eliminación</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ¿Estás seguro de que deseas eliminar el proyecto <strong>@proyecto.Nombre</strong> junto con todas sus fases, tareas e hitos? Esta acción no se puede deshacer.
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <form asp-action="EliminarProyecto" asp-controller="Proyecto" method="post">
+                                            <input type="hidden" name="proyectoId" value="@proyecto.Id" />
+                                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            }
-        </tbody>
-    </table>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $("#proyectosTable").DataTable({
+                language: { url: "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json" },
+                pageLength: 10,
+                order: [[1, "desc"]]
+            });
+        });
+    </script>
+}

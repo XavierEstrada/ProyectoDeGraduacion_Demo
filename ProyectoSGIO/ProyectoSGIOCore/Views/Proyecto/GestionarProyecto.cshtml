@@ -63,9 +63,12 @@
 <div class="content-scroll-container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Fases</h3>
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarFase">
-            Agregar Fase
-        </button>
+        @if (User.Identity.IsAuthenticated)
+        {
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarFase">
+                Agregar Fase
+            </button>
+        }
     </div>
 
     @foreach (var fase in Model.Fases)
@@ -74,9 +77,12 @@
             <!-- Encabezado de la Fase -->
             <div class="fase-header d-flex justify-content-between align-items-center">
                 <h4>@fase.Nombre</h4>
-                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarFase_@fase.Id">
-                    Eliminar Fase
-                </button>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarFase_@fase.Id">
+                        Eliminar Fase
+                    </button>
+                }
             </div>
 
             <!-- Lista de Tareas -->
@@ -91,10 +97,12 @@
                                 <strong>@tarea.Nombre</strong> - Inicio: @tarea.FechaInicio.ToShortDateString() - Fin: @tarea.FechaFin.ToShortDateString() - Costo: $@tarea.Costo
                             </div>
 
-                            <!-- Botón de Eliminar Tarea -->
-                            <button type="button" class="btn btn-danger btn-sm eliminar-tarea-btn" data-tarea-id="@tarea.Id" data-tarea-nombre="@tarea.Nombre" data-bs-toggle="modal" data-bs-target="#modalEliminarTarea">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                <button type="button" class="btn btn-danger btn-sm eliminar-tarea-btn" data-tarea-id="@tarea.Id" data-tarea-nombre="@tarea.Nombre" data-bs-toggle="modal" data-bs-target="#modalEliminarTarea">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            }
 
                             <label class="checkbox-btn ms-2">
                                 <input id="checkbox_@tarea.Id" type="checkbox" @(tarea.Completada ? "checked" : "") />
@@ -104,7 +112,10 @@
                     }
                 </ul>
                 <div><strong>Total Fase: $@fase.Tareas.Sum(t => t.Costo)</strong></div>
-                <a class="btn btn-outline-primary agregar-tareas-btn" data-fase-id="@fase.Id">Agregar Tareas</a>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <a class="btn btn-outline-primary agregar-tareas-btn" data-fase-id="@fase.Id">Agregar Tareas</a>
+                }
             </div>
         </div>
 
@@ -158,9 +169,12 @@
 <div class="content-scroll-container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Hitos</h3>
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarHito">
-            Agregar Hito
-        </button>
+        @if (User.Identity.IsAuthenticated)
+        {
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarHito">
+                Agregar Hito
+            </button>
+        }
     </div>
 
     @foreach (var hito in Model.Hitos)
@@ -203,27 +217,29 @@
                         </span>
                     }
                 </h4>
-                <div>
-                    @if (hito.estado == 1)
-                    {
-                        <form asp-action="AprobarHito" asp-controller="Proyecto" method="post" style="display:inline-block;">
-                            <input type="hidden" name="hitoId" value="@hito.ID" />
-                            <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
-                                Aprobar
-                            </button>
-                        </form>
-
-                        <form asp-action="RechazarHito" asp-controller="Proyecto" method="post" style="display:inline-block;">
-                            <input type="hidden" name="hitoId" value="@hito.ID" />
-                            <button type="submit" style="background-color: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
-                                Rechazar
-                            </button>
-                        </form>
-                    }
-                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarHito_@hito.ID">
-                        Eliminar Hito
-                    </button>
-                </div>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <div>
+                        @if (hito.estado == 1)
+                        {
+                            <form asp-action="AprobarHito" asp-controller="Proyecto" method="post" style="display:inline-block;">
+                                <input type="hidden" name="hitoId" value="@hito.ID" />
+                                <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                                    Aprobar
+                                </button>
+                            </form>
+                            <form asp-action="RechazarHito" asp-controller="Proyecto" method="post" style="display:inline-block;">
+                                <input type="hidden" name="hitoId" value="@hito.ID" />
+                                <button type="submit" style="background-color: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                                    Rechazar
+                                </button>
+                            </form>
+                        }
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarHito_@hito.ID">
+                            Eliminar Hito
+                        </button>
+                    </div>
+                }
             </div>
         </div>
 
@@ -383,8 +399,11 @@
 <!-- Sección: Botones de Navegación -->
 <div class="return-button">
     <a asp-action="Proyectos" asp-controller="Proyecto" class="btn btn-dark">Volver a Proyectos</a>
-    <button type="button" id="guardarEstadoBtn" class="btn btn-primary">Guardar Estado</button>
-    <button id="saveChangesBtn" class="btn btn-success">Guardar Cambios</button>
+    @if (User.Identity.IsAuthenticated)
+    {
+        <button type="button" id="guardarEstadoBtn" class="btn btn-primary">Guardar Estado</button>
+        <button id="saveChangesBtn" class="btn btn-success">Guardar Cambios</button>
+    }
 </div>
 
 @section Scripts {
