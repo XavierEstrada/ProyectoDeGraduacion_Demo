@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(ls -1 /c/GitHub/ProyectoDeGraduacion_Demo/ProyectoSGIO/ProyectoSGIOCore/Models/*.cs)",
-      "Bash(xargs -I {} basename {} .cs)"
+      "Bash(xargs -I {} basename {} .cs)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

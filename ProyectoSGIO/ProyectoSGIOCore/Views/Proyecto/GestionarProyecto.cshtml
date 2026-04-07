@@ -1,542 +1,792 @@
-﻿@model ProyectoSGIOCore.Models.Proyecto
+@model ProyectoSGIOCore.Models.Proyecto
 @{
-    ViewData["Title"] = "Detalles del Proyecto";
+    ViewData["Title"] = "Gestionar Proyecto";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string estadoBadge(ProyectoSGIOCore.Models.EstadoProyecto e) => e switch {
+        ProyectoSGIOCore.Models.EstadoProyecto.Completado  => "complete",
+        ProyectoSGIOCore.Models.EstadoProyecto.Progreso    => "progress",
+        ProyectoSGIOCore.Models.EstadoProyecto.Planificacion => "pending",
+        _                                                   => "inactive"
+    };
+
+    int totalTareas = Model.Fases.SelectMany(f => f.Tareas).Count();
+    int tareasOk    = Model.Fases.SelectMany(f => f.Tareas).Count(t => t.Completada);
+    int progreso    = totalTareas == 0 ? 0 : tareasOk * 100 / totalTareas;
 }
 
-<link href="~/css/proyectos.css" rel="stylesheet" />
-
-<!-- Sección: Mensajes de Éxito y Error -->
-<div class="alert-messages">
-    <!-- Mensaje Exito -->
-    <div id="successMessage" class="alert alert-success text-center mt-3" style="display:none;">
-        <span id="successText"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@Model.Nombre</h1>
+        <p class="page-subtitle">Creado el @Model.FechaCreacion.ToString("dd/MM/yyyy") &nbsp;·&nbsp; <span class="badge-status @estadoBadge(Model.Estado)">@Model.Estado</span></p>
     </div>
-    @if (TempData["MensajeExito"] != null)
-    {
-        <div class="alert alert-success text-center mt-3" role="alert">
-            @TempData["MensajeExito"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <!-- Mensaje Fracaso -->
-    <div id="errorMessage" class="alert alert-danger text-center mt-3" style="display:none;">
-        <span id="errorText"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    @if (TempData["MensajeError"] != null)
-    {
-        <div class="alert alert-danger text-center mt-3" role="alert">
-            @TempData["MensajeError"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
+    <a asp-action="Proyectos" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Volver
+    </a>
 </div>
 
-<!-- Sección: Encabezado del Proyecto -->
-<h2 class="section-title">Gestionar Proyecto: <span class="project-name">@Model.Nombre</span></h2>
-<p class="project-details">Fecha de Creación: <span class="creation-date">@Model.FechaCreacion.ToShortDateString()</span></p>
-
-<!-- Formulario para seleccionar el estado -->
-<form id="estadoProyectoForm" asp-action="GuardarCambios" method="post">
-    <input type="hidden" name="proyectoId" value="@Model.Id" />
-
-    <!-- Campo Estado del Proyecto -->
-    <div class="mb-3">
-        <label for="EstadoProyecto" class="form-label">Estado del Proyecto</label>
-        @Html.DropDownListFor(
-                 model => model.Estado, // Vincula al campo 'Estado' del modelo
-                 new SelectList(Enum.GetValues(typeof(ProyectoSGIOCore.Models.EstadoProyecto))),
-                 new { @class = "form-select", id = "EstadoProyecto" })
+<!-- Alertas -->
+@if (TempData["MensajeExito"] != null)
+{
+    <div class="sgio-alert success mb-3">
+        <i class="bi bi-check-circle me-2"></i>@TempData["MensajeExito"]
     </div>
-</form>
+}
+@if (TempData["MensajeError"] != null)
+{
+    <div class="sgio-alert danger mb-3">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["MensajeError"]
+    </div>
+}
+<div id="alertAjax" style="display:none;" class="sgio-alert success mb-3">
+    <i class="bi bi-check-circle me-2"></i><span id="alertAjaxMsg"></span>
+</div>
 
-<!-- Obtener el estado del proyecto desde el ViewData y establecerlo en el select -->
-<script>
-    var estadoProyecto = @ViewData["EstadoProyecto"]
-    document.getElementById('EstadoProyecto').value = estadoProyecto;
-</script>
+<!-- Progreso + Estado -->
+<div class="stats-row mb-4">
+    <div class="stat-mini" style="flex:2;min-width:200px;">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <span style="font-size:12px;font-weight:600;color:#64748b;">PROGRESO GENERAL</span>
+            <span class="fw-700 text-primary">@progreso%</span>
+        </div>
+        <div class="progress" style="height:8px;border-radius:4px;">
+            <div class="progress-bar bg-primary" style="width:@progreso%;border-radius:4px;"></div>
+        </div>
+        <p class="mt-1 mb-0" style="font-size:12px;color:#94a3b8;">@tareasOk de @totalTareas tareas completadas</p>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-icon" style="background:rgba(62,100,255,.1);color:#3e64ff;"><i class="bi bi-layers"></i></div>
+        <div><p class="stat-label">Fases</p><h3 class="stat-value">@Model.Fases.Count</h3></div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-icon" style="background:rgba(16,185,129,.1);color:#10b981;"><i class="bi bi-check2-circle"></i></div>
+        <div><p class="stat-label">Tareas Completadas</p><h3 class="stat-value">@tareasOk</h3></div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;"><i class="bi bi-flag"></i></div>
+        <div><p class="stat-label">Hitos</p><h3 class="stat-value">@Model.Hitos.Count</h3></div>
+    </div>
+</div>
 
-<!-- Sección: Lista de Fases -->
-<div class="content-scroll-container">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Fases</h3>
+<!-- Estado del proyecto -->
+@if (User.Identity.IsAuthenticated)
+{
+    <div class="table-card mb-4">
+        <div class="p-4">
+            <h6 class="mb-3" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:600;">Estado del Proyecto</h6>
+            <form id="estadoProyectoForm" asp-action="GuardarCambios" method="post" class="d-flex gap-3 align-items-end">
+                <input type="hidden" name="proyectoId" value="@Model.Id" />
+                <div class="flex-grow-1" style="max-width:280px;">
+                    @Html.DropDownListFor(
+                        model => model.Estado,
+                        new SelectList(Enum.GetValues(typeof(ProyectoSGIOCore.Models.EstadoProyecto))),
+                        new { @class = "form-select", id = "EstadoProyecto", name = "Estado" })
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-save me-1"></i>Guardar Estado
+                </button>
+            </form>
+        </div>
+    </div>
+}
+
+<!-- ====== CLIENTE ====== -->
+<div class="table-card mb-4">
+    <div class="p-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:600;">Cliente Asignado</h6>
+            @if (Model.Usuario != null)
+            {
+                <p class="mb-0 fw-500">@Model.Usuario.Nombre @Model.Usuario.Apellido</p>
+                <p class="mb-0 text-muted" style="font-size:13px;">@Model.Usuario.Correo</p>
+            }
+            else
+            {
+                <p class="mb-0 text-muted" style="font-size:14px;">Sin cliente asignado</p>
+            }
+        </div>
         @if (User.Identity.IsAuthenticated)
         {
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarFase">
-                Agregar Fase
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAsignarCliente">
+                <i class="bi bi-person-plus me-1"></i>@(Model.Usuario != null ? "Cambiar Cliente" : "Asignar Cliente")
             </button>
         }
     </div>
+</div>
 
-    @foreach (var fase in Model.Fases)
+<!-- ====== FASES ====== -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-600">Fases y Tareas</h5>
+    @if (User.Identity.IsAuthenticated)
     {
-        <div class="fase-card">
-            <!-- Encabezado de la Fase -->
-            <div class="fase-header d-flex justify-content-between align-items-center">
-                <h4>@fase.Nombre</h4>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarFase">
+            <i class="bi bi-plus-lg me-1"></i>Agregar Fase
+        </button>
+    }
+</div>
+
+@if (!Model.Fases.Any())
+{
+    <div class="table-card p-5 text-center text-muted mb-4">
+        <i class="bi bi-stack" style="font-size:2.5rem;opacity:.25;"></i>
+        <p class="mb-0 mt-3">Este proyecto no tiene fases todavía.</p>
+    </div>
+}
+
+@foreach (var fase in Model.Fases)
+{
+    int faseTareas = fase.Tareas.Count;
+    int faseOk = fase.Tareas.Count(t => t.Completada);
+    int fasePct = faseTareas == 0 ? 0 : faseOk * 100 / faseTareas;
+
+    <div class="table-card mb-3">
+        <div class="p-4 pb-2 d-flex justify-content-between align-items-center border-bottom">
+            <div>
+                <span class="fw-600" style="font-size:15px;">@fase.Nombre</span>
+                <span class="ms-2 text-muted" style="font-size:12px;">@faseOk/@faseTareas tareas · $@fase.CostoTotal.ToString("N2")</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div style="width:80px;">
+                    <div class="progress" style="height:6px;border-radius:4px;">
+                        <div class="progress-bar bg-primary" style="width:@fasePct%;border-radius:4px;"></div>
+                    </div>
+                    <p class="mb-0 text-end" style="font-size:11px;color:#94a3b8;">@fasePct%</p>
+                </div>
                 @if (User.Identity.IsAuthenticated)
                 {
-                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarFase_@fase.Id">
-                        Eliminar Fase
+                    <button type="button" class="btn btn-action delete" title="Eliminar fase"
+                            data-bs-toggle="modal" data-bs-target="#modalEliminarFase_@fase.Id">
+                        <i class="bi bi-trash"></i>
                     </button>
                 }
             </div>
+        </div>
 
-            <!-- Lista de Tareas -->
-            <div class="tareas-list">
-                <h5>Tareas</h5>
-                <ul>
-                    @foreach (var tarea in fase.Tareas)
-                    {
-                        <li class="tarea-item d-flex align-items-center">
-
-                            <div class="tarea-info flex-grow-1">
-                                <strong>@tarea.Nombre</strong> - Inicio: @tarea.FechaInicio.ToShortDateString() - Fin: @tarea.FechaFin.ToShortDateString() - Costo: $@tarea.Costo
-                            </div>
-
+        <div class="p-0">
+            @if (!fase.Tareas.Any())
+            {
+                <p class="text-muted p-4 mb-0" style="font-size:13px;">Sin tareas en esta fase.</p>
+            }
+            else
+            {
+                <table class="sgio-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Tarea</th>
+                            <th>Inicio</th>
+                            <th>Fin</th>
+                            <th>Costo</th>
+                            <th>Estado</th>
                             @if (User.Identity.IsAuthenticated)
                             {
-                                <button type="button" class="btn btn-danger btn-sm eliminar-tarea-btn" data-tarea-id="@tarea.Id" data-tarea-nombre="@tarea.Nombre" data-bs-toggle="modal" data-bs-target="#modalEliminarTarea">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <th class="text-center">Acciones</th>
                             }
-
-                            <label class="checkbox-btn ms-2">
-                                <input id="checkbox_@tarea.Id" type="checkbox" @(tarea.Completada ? "checked" : "") />
-                                <span class="checkmark"></span>
-                            </label>
-                        </li>
-                    }
-                </ul>
-                <div><strong>Total Fase: $@fase.Tareas.Sum(t => t.Costo)</strong></div>
-                @if (User.Identity.IsAuthenticated)
-                {
-                    <a class="btn btn-outline-primary agregar-tareas-btn" data-fase-id="@fase.Id">Agregar Tareas</a>
-                }
-            </div>
-        </div>
-
-        <!-- Modal de Confirmación para Eliminar Fase -->
-        <div class="modal fade" id="modalEliminarFase_@fase.Id" tabindex="-1" aria-labelledby="modalEliminarFaseLabel_@fase.Id" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalEliminarFaseLabel_@fase.Id">Confirmar Eliminación</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                    </div>
-                    <div class="modal-body">
-                        ¿Está seguro de eliminar la fase <strong>@fase.Nombre</strong> y todas sus tareas? Esta acción no se puede deshacer.
-                    </div>
-                    <div class="modal-footer">
-                        <form asp-action="EliminarFase" asp-controller="Proyecto" method="post">
-                            <input type="hidden" name="faseId" value="@fase.Id" />
-                            <button type="submit" class="btn btn-danger">Confirmar</button>
-                        </form>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    </div>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tarea in fase.Tareas)
+                        {
+                            <tr>
+                                <td class="fw-500">@tarea.Nombre</td>
+                                <td class="text-muted" style="font-size:13px;">@tarea.FechaInicio.ToString("dd/MM/yyyy")</td>
+                                <td class="text-muted" style="font-size:13px;">@tarea.FechaFin.ToString("dd/MM/yyyy")</td>
+                                <td>$@(tarea.Costo?.ToString("N2") ?? "0.00")</td>
+                                <td>
+                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
+                                        <input type="checkbox" id="chk_@tarea.Id" class="tarea-checkbox"
+                                               data-tarea-id="@tarea.Id" @(tarea.Completada ? "checked" : "") />
+                                        <span class="badge-status @(tarea.Completada ? "complete" : "pending")" id="badge_@tarea.Id">
+                                            @(tarea.Completada ? "Completada" : "Pendiente")
+                                        </span>
+                                    </label>
+                                </td>
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-action delete eliminar-tarea-btn"
+                                                title="Eliminar tarea"
+                                                data-tarea-id="@tarea.Id"
+                                                data-tarea-nombre="@tarea.Nombre"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalEliminarTarea">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="p-3 border-top">
+                    <button type="button" class="btn btn-sm btn-outline-primary agregar-tareas-btn"
+                            data-fase-id="@fase.Id">
+                        <i class="bi bi-plus me-1"></i>Agregar Tarea
+                    </button>
                 </div>
-            </div>
+            }
         </div>
-    }
+    </div>
 
-    <!-- Modal único reutilizable para eliminar tareas -->
-    <div class="modal fade" id="modalEliminarTarea" tabindex="-1" aria-labelledby="modalEliminarTareaLabel" aria-hidden="true">
+    <!-- Modal Eliminar Fase -->
+    <div class="modal fade" id="modalEliminarFase_@fase.Id" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalEliminarTareaLabel">Eliminar Tarea</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Eliminar Fase</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    ¿Estás seguro de que deseas eliminar la tarea "<strong id="tareaNombre"></strong>"?
+                    ¿Seguro que deseas eliminar la fase <strong>@fase.Nombre</strong> y todas sus tareas?
+                    <p class="text-danger small mt-2 mb-0">Esta acción no se puede deshacer.</p>
                 </div>
                 <div class="modal-footer">
-                    <form method="post" action="@Url.Action("EliminarTarea", "Proyecto")">
-                        <input type="hidden" name="tareaId" id="tareaId" value="" />
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form asp-action="EliminarFase" asp-controller="Proyecto" method="post" class="d-inline">
+                        <input type="hidden" name="faseId" value="@fase.Id" />
                         <button type="submit" class="btn btn-danger">Eliminar</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-</div>
+}
 
-<!-- Sección: Lista de Hitos -->
-<div class="content-scroll-container">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Hitos</h3>
-        @if (User.Identity.IsAuthenticated)
-        {
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarHito">
-                Agregar Hito
-            </button>
-        }
-    </div>
-
-    @foreach (var hito in Model.Hitos)
+<!-- ====== HITOS ====== -->
+<div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+    <h5 class="mb-0 fw-600">Hitos del Proyecto</h5>
+    @if (User.Identity.IsAuthenticated)
     {
-        <div class="fase-card">
-            <!-- Encabezado de la Fase -->
-            <div class="fase-header d-flex justify-content-between align-items-center">
-                <h4>Descripción: </h4><h5>@hito.Descripcion</h5>
-                <h4>Responsable: </h4> <h5>@hito.Usuario.Nombre @hito.Usuario.Apellido</h5>
-                <h4>Fecha: </h4> <h5>@hito.Fecha.ToShortDateString()</h5>
-                <h4>
-                    Estado: @if (@hito.estado == 1)
-                    {
-                        <span class="btn btn-success btn-sm">
-                            Completo
-                        </span>
-                    }
-                    @if (@hito.estado == 2)
-                    {
-                        <span class=" btn btn-danger btn-sm">
-                            Pendiente
-                        </span>
-                    }
-                    @if (@hito.estado == 3)
-                    {
-                        <span class="btn btn-warning btn-sm">
-                            En Proceso
-                        </span>
-                    }
-                    @if (@hito.estado == 4)
-                    {
-                        <span class="btn btn-success btn-sm" style="background-color: #28a745; color: white;">
-                            Aprobado
-                        </span>
-                    }
-                    @if (@hito.estado == 5)
-                    {
-                        <span class="btn btn-danger btn-sm" style="background-color: #dc3545; color: white;">
-                            Rechazado
-                        </span>
-                    }
-                </h4>
-                @if (User.Identity.IsAuthenticated)
-                {
-                    <div>
-                        @if (hito.estado == 1)
-                        {
-                            <form asp-action="AprobarHito" asp-controller="Proyecto" method="post" style="display:inline-block;">
-                                <input type="hidden" name="hitoId" value="@hito.ID" />
-                                <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
-                                    Aprobar
-                                </button>
-                            </form>
-                            <form asp-action="RechazarHito" asp-controller="Proyecto" method="post" style="display:inline-block;">
-                                <input type="hidden" name="hitoId" value="@hito.ID" />
-                                <button type="submit" style="background-color: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
-                                    Rechazar
-                                </button>
-                            </form>
-                        }
-                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEliminarHito_@hito.ID">
-                            Eliminar Hito
-                        </button>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <!-- Modal de Confirmación para Eliminar Hito -->
-        <div class="modal fade" id="modalEliminarHito_@hito.ID" tabindex="-1" aria-labelledby="modalEliminarHitoLabel_@hito.ID" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalEliminarHitoLabel_@hito.ID">Confirmar Eliminación</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                    </div>
-                    <div class="modal-body">
-                        ¿Está seguro de eliminar el hito <strong>@hito.Descripcion</strong>? Esta acción no se puede deshacer.
-                    </div>
-                    <div class="modal-footer">
-                        <form asp-action="EliminarHito" asp-controller="Proyecto" method="post">
-                            <input type="hidden" name="hitoId" value="@hito.ID" />
-                            <button type="submit" class="btn btn-danger">Confirmar</button>
-                        </form>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarHito">
+            <i class="bi bi-plus-lg me-1"></i>Agregar Hito
+        </button>
     }
 </div>
 
-<!-- Sección: Modales -->
-<!-- Modal para Agregar Fase -->
-<div class="modal fade" id="modalAgregarFase" tabindex="-1" aria-labelledby="modalAgregarFaseLabel" aria-hidden="true">
+@if (!Model.Hitos.Any())
+{
+    <div class="table-card p-5 text-center text-muted mb-4">
+        <i class="bi bi-flag" style="font-size:2.5rem;opacity:.25;"></i>
+        <p class="mb-0 mt-3">No hay hitos registrados para este proyecto.</p>
+    </div>
+}
+else
+{
+    <div class="table-card mb-4">
+        <table class="sgio-table mb-0">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Responsable</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <th class="text-center">Acciones</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var hito in Model.Hitos)
+                {
+                    string hitoBadge = hito.estado switch {
+                        1 => "complete",
+                        2 => "inactive",
+                        3 => "progress",
+                        4 => "complete",
+                        5 => "inactive",
+                        _ => "pending"
+                    };
+                    string hitoLabel = hito.estado switch {
+                        1 => "Completo",
+                        2 => "Pendiente",
+                        3 => "En Progreso",
+                        4 => "Aprobado",
+                        5 => "Rechazado",
+                        _ => "—"
+                    };
+                    <tr>
+                        <td class="fw-500" style="max-width:260px;">@hito.Descripcion</td>
+                        <td>@(hito.Usuario != null ? $"{hito.Usuario.Nombre} {hito.Usuario.Apellido}" : "—")</td>
+                        <td class="text-muted" style="font-size:13px;">@hito.Fecha.ToString("dd/MM/yyyy")</td>
+                        <td><span class="badge-status @hitoBadge">@hitoLabel</span></td>
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <td class="text-center">
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <button type="button" class="btn btn-action edit editar-estado-hito-btn"
+                                            title="Cambiar estado"
+                                            data-hito-id="@hito.ID"
+                                            data-estado-actual="@hito.estado"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalEditarEstadoHito">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-action delete"
+                                            title="Eliminar hito"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalEliminarHito_@hito.ID">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        }
+                    </tr>
+
+                    <!-- Modal Eliminar Hito -->
+                    <div class="modal fade" id="modalEliminarHito_@hito.ID" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Eliminar Hito</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    ¿Seguro que deseas eliminar el hito <strong>@hito.Descripcion</strong>?
+                                    <p class="text-danger small mt-2 mb-0">Esta acción no se puede deshacer.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <form asp-action="EliminarHito" asp-controller="Proyecto" method="post" class="d-inline">
+                                        <input type="hidden" name="hitoId" value="@hito.ID" />
+                                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- ====== MODAL: Agregar Fase ====== -->
+<div class="modal fade" id="modalAgregarFase" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalAgregarFaseLabel">Agregar Nueva Fase</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <h5 class="modal-title">Nueva Fase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form asp-action="AgregarFase" asp-controller="Proyecto" method="post">
                 <div class="modal-body">
                     <input type="hidden" name="proyectoId" value="@Model.Id" />
-                    <div class="mb-3">
-                        <label for="NombreFase" class="form-label">Nombre de la Fase</label>
-                        <input type="text" class="form-control" id="NombreFase" name="Nombre" required />
-                    </div>
+                    <label class="form-label">Nombre de la Fase <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="Nombre" placeholder="Ej: Fundaciones" required />
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Guardar</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal para agregar tareas -->
-<div class="modal fade" id="modalAgregarTarea" tabindex="-1" aria-labelledby="modalAgregarTareaLabel" aria-hidden="true">
+<!-- ====== MODAL: Agregar Tarea ====== -->
+<div class="modal fade" id="modalAgregarTarea" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalAgregarTareaLabel">Agregar Tareas a la Fase</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="modalAgregarTareaLabel">Agregar Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="alertContainer" class="mb-3"></div>
-                <form id="formAgregarTareas">
-                    <input type="hidden" id="faseId" name="faseId" />
+                <div id="alertContainerTarea" class="mb-3"></div>
+                <form id="formAgregarTareas" novalidate>
+                    <input type="hidden" id="faseIdHidden" name="faseId" />
                     <div class="mb-3">
-                        <label for="tareaNombre">Nombre de la Tarea</label>
-                        <input type="text" class="form-control" id="tareaNombre" name="tareas[0].Nombre" required />
+                        <label class="form-label">Nombre de la Tarea <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="inputTareaNombre" name="tareas[0].Nombre" required placeholder="Nombre de la tarea" />
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Fecha Inicio <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="inputFechaInicio" name="tareas[0].FechaInicio" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Fecha Fin <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="inputFechaFin" name="tareas[0].FechaFin" required />
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="fechaInicio">Fecha de Inicio</label>
-                        <input type="date" class="form-control" id="fechaInicio" name="tareas[0].FechaInicio" required />
+                        <label class="form-label">Costo ($)</label>
+                        <input type="number" class="form-control" id="inputCosto" name="tareas[0].Costo" min="0" step="0.01" placeholder="0.00" />
                     </div>
-                    <div class="mb-3">
-                        <label for="fechaFin">Fecha de Fin</label>
-                        <input type="date" class="form-control" id="fechaFin" name="tareas[0].FechaFin" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="tareaCosto">Costo</label>
-                        <input type="number" class="form-control" id="tareaCosto" name="tareas[0].Costo" min="0" step="any" required />
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-success" id="btnAgregarTarea">Agregar Tarea</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitTarea">
+                    <i class="bi bi-plus me-1"></i>Agregar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== MODAL: Eliminar Tarea ====== -->
+<div class="modal fade" id="modalEliminarTarea" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar Tarea</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Seguro que deseas eliminar la tarea <strong id="tareaEliminarNombre"></strong>?
+                <p class="text-danger small mt-2 mb-0">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="@Url.Action("EliminarTarea", "Proyecto")" class="d-inline">
+                    <input type="hidden" name="tareaId" id="tareaEliminarId" />
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para Agregar Hitos -->
-<div class="modal fade" id="modalAgregarHito" tabindex="-1" aria-labelledby="modalAgregarHitoLabel" aria-hidden="true">
+<!-- ====== MODAL: Agregar Hito ====== -->
+<div class="modal fade" id="modalAgregarHito" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-
             <div class="modal-header">
-                <h5 class="modal-title" id="modalAgregarHitoLabel">Agregar Nuevo Hito</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <h5 class="modal-title">Nuevo Hito</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form asp-action="AsignarHito" method="post">
                 <input type="hidden" name="id" value="@ViewBag.ProyectoId" />
                 <div class="modal-body">
-                    <div style="display:flex; flex-direction:column; justify-content:space-between;">
-                        <div class="mb-3">
-                            <label>Ingrese una descripción para este Hito</label>
-                            <textarea name="Descripcion" class="form-control" placeholder="Descripción del Hito"></textarea>
-                            <span class="text-danger"></span>
-                        </div>
-                        <div class="mb-3" style="display:flex; flex-direction:column;">
-                            <label class="form-label">Empleado</label>
-                            <select name="usuarioId" asp-items="ViewBag.Usuarios" class="form-select">
-                                <option value="">Seleccione un empleado</option>
-                            </select>
-                            <span class="text-danger"></span>
-                        </div>
-                        <div class="mb-3" style="display:flex; flex-direction:column;">
-                            <label>Estado</label>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                        <textarea name="Descripcion" class="form-control" rows="3" placeholder="Descripción del hito" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Responsable <span class="text-danger">*</span></label>
+                        <select name="usuarioId" asp-items="ViewBag.Usuarios" class="form-select" required>
+                            <option value="">Seleccione un empleado</option>
+                        </select>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Estado</label>
                             <select name="estadoId" asp-items="ViewBag.EstadosHito" class="form-select">
-                                <option value="">Seleccione un estado</option>
+                                <option value="">Seleccione estado</option>
                             </select>
                         </div>
-                        <div class="mb-3" style="display:flex; flex-direction:column;">
-                            <label>Fecha de Inicio</label>
-                            <input type="date" name="Fecha" />
+                        <div class="col-6">
+                            <label class="form-label">Fecha</label>
+                            <input type="date" name="Fecha" class="form-control" required />
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Guardar</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Hito</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal de Confirmación para Guardar Cambios -->
-<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- ====== MODAL: Asignar Cliente ====== -->
+<div class="modal fade" id="modalAsignarCliente" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="confirmModalLabel">Confirmar cambios</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus me-2"></i>
+                    @(Model.Usuario != null ? "Cambiar Cliente" : "Asignar Cliente")
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                ¿Estás seguro de que deseas guardar los cambios?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" id="confirmSave" class="btn btn-primary">Guardar Cambios</button>
-            </div>
+            <form asp-action="AsignarCliente" asp-controller="Proyecto" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="usuarioId" id="clienteSeleccionadoId" />
+                <div class="modal-body">
+                    <!-- Barra de búsqueda -->
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" id="buscarCliente"
+                                   class="form-control border-start-0 ps-0"
+                                   placeholder="Buscar por nombre, apellido o correo…"
+                                   autocomplete="off" />
+                        </div>
+                    </div>
+                    <!-- Lista de clientes -->
+                    <div id="listaClientes"
+                         style="max-height:340px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;">
+                        @{
+                            var clientes = ViewBag.Clientes as List<ProyectoSGIOCore.Models.Usuario>;
+                        }
+                        @if (clientes == null || !clientes.Any())
+                        {
+                            <div class="p-4 text-center text-muted" style="font-size:14px;">
+                                <i class="bi bi-people" style="font-size:2rem;opacity:.3;"></i>
+                                <p class="mb-0 mt-2">No hay clientes registrados con rol Usuario.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            foreach (var cliente in clientes)
+                            {
+                                bool esActual = Model.Usuario?.IdUsuario == cliente.IdUsuario;
+                                <div class="cliente-item d-flex align-items-center gap-3 p-3 @(esActual ? "selected" : "")"
+                                     data-id="@cliente.IdUsuario"
+                                     data-nombre="@cliente.Nombre @cliente.Apellido"
+                                     data-correo="@cliente.Correo"
+                                     style="cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .15s;@(esActual ? "background:#eff6ff;" : "")">
+                                    <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#3e64ff20,#3e64ff40);color:#3e64ff;font-weight:700;font-size:14px;">
+                                        @cliente.Nombre.Substring(0, 1).ToUpper()@cliente.Apellido.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-0 fw-500" style="font-size:14px;">@cliente.Nombre @cliente.Apellido</p>
+                                        <p class="mb-0 text-muted" style="font-size:12px;">@cliente.Correo</p>
+                                    </div>
+                                    <div class="check-icon" style="display:@(esActual ? "block" : "none");">
+                                        <i class="bi bi-check-circle-fill text-primary"></i>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <!-- Cliente seleccionado -->
+                    <div id="clienteSeleccionadoInfo" class="mt-3" style="display:@(Model.Usuario != null ? "" : "none");">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:#eff6ff;font-size:13px;">
+                            <i class="bi bi-person-check-fill text-primary"></i>
+                            <span>Seleccionado: <strong id="clienteSeleccionadoNombre">@(Model.Usuario != null ? $"{Model.Usuario.Nombre} {Model.Usuario.Apellido}" : "")</strong></span>
+                        </div>
+                    </div>
+                    <div id="sinClienteSeleccionado" class="mt-3" style="display:@(Model.Usuario != null ? "none" : "");">
+                        <p class="text-muted mb-0" style="font-size:13px;">
+                            <i class="bi bi-info-circle me-1"></i>Haz clic en un cliente para seleccionarlo.
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnAsignarCliente" @(Model.Usuario != null ? "" : "disabled")>
+                        <i class="bi bi-check-lg me-1"></i>Asignar Cliente
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Sección: Botones de Navegación -->
-<div class="return-button">
-    <a asp-action="Proyectos" asp-controller="Proyecto" class="btn btn-dark">Volver a Proyectos</a>
-    @if (User.Identity.IsAuthenticated)
-    {
-        <button type="button" id="guardarEstadoBtn" class="btn btn-primary">Guardar Estado</button>
-        <button id="saveChangesBtn" class="btn btn-success">Guardar Cambios</button>
-    }
+<!-- ====== MODAL: Editar Estado Hito ====== -->
+<div class="modal fade" id="modalEditarEstadoHito" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Cambiar Estado del Hito</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="ActualizarEstadoHito" asp-controller="Proyecto" method="post">
+                <input type="hidden" name="hitoId" id="editarHitoId" />
+                <div class="modal-body">
+                    <label class="form-label">Nuevo Estado <span class="text-danger">*</span></label>
+                    <select name="estadoId" id="editarEstadoSelect" class="form-select" required>
+                        <option value="1">Completo</option>
+                        <option value="2">Pendiente</option>
+                        <option value="3">En Progreso</option>
+                        <option value="4">Aprobado</option>
+                        <option value="5">Rechazado</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Estado</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
-    <script>
-        document.getElementById('saveChangesBtn').onclick = function () {
-            new bootstrap.Modal(document.getElementById('confirmModal')).show();
-        };
-
-        document.getElementById('confirmSave').onclick = function () {
-            guardarCambios();
-        };
-
-        // Evento para guardar solo el estado del proyecto
-        document.getElementById('guardarEstadoBtn').onclick = function () {
-            document.getElementById('estadoProyectoForm').submit();
-        };
-
-        // Función para guardar los cambios de tareas
-        function guardarCambios() {
-            let tareasCompletadas = {};
-            document.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-                tareasCompletadas[checkbox.id.split('_')[1]] = checkbox.checked;
-            });
-
-            fetch('@Url.Action("ActualizarTareas", "Proyecto")', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(tareasCompletadas)
-            }).then(response => response.json())
-                .then(data => {
-                    const confirmModal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
-                    confirmModal.hide();
-
-                    // Reiniciar visibilidad y texto de mensajes
-                    document.getElementById('successMessage').style.display = 'none';
-                    document.getElementById('errorMessage').style.display = 'none';
-
-                    if (data.message) {
-                        document.getElementById('successText').textContent = data.message;
-                        document.getElementById('successMessage').style.display = 'block';
-                    } else if (data.error) {
-                        document.getElementById('errorText').textContent = data.error;
-                        document.getElementById('errorMessage').style.display = 'block';
-                    }
-                }).catch(error => {
-                    console.error('Error:', error);
-                });
+<script>
+// ---- Checkboxes de tareas (guardar sin recargar) ----
+document.querySelectorAll('.tarea-checkbox').forEach(chk => {
+    chk.addEventListener('change', function() {
+        const tareaId = this.dataset.tareaId;
+        const completada = this.checked;
+        const badge = document.getElementById(`badge_${tareaId}`);
+        if (badge) {
+            badge.textContent = completada ? 'Completada' : 'Pendiente';
+            badge.className = `badge-status ${completada ? 'complete' : 'pending'}`;
         }
-
-        // Botones de agregar tareas
-        document.querySelectorAll('.agregar-tareas-btn').forEach(button => {
-            button.addEventListener('click', async () => {
-                const faseId = button.getAttribute('data-fase-id');
-
-                try {
-                    const response = await fetch(`/Proyecto/ObtenerFase?faseId=${faseId}`);
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        mostrarAlertaEnModal(data.mensaje || "Error al cargar la fase.", "danger");
-                        return;
-                    }
-
-                    // Configurar el modal
-                    document.getElementById('modalAgregarTareaLabel').textContent = `Agregar tareas a la fase: ${data.nombre}`;
-                    document.getElementById('faseId').value = data.id;
-                    const modal = new bootstrap.Modal(document.getElementById('modalAgregarTarea'));
-                    modal.show();
-
-                } catch (error) {
-                    mostrarAlertaEnModal("Error al cargar los datos de la fase. Intente de nuevo.", "danger");
-                    console.error("Error:", error);
-                }
-            });
-        });
-
-        // Enviar formulario de agregar tareas
-        document.getElementById('formAgregarTareas').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-
-            try {
-                const response = await fetch('/Proyecto/AgregarTareasModal', {
-                    method: 'POST',
-                    body: formData,
-                });
-                const result = await response.json();
-
-                if (response.ok && result.exito) {
-                    mostrarAlertaEnModal(result.mensaje, "success");
-
-                    // Cerrar el modal después de un corto intervalo
-                    setTimeout(() => {
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarTarea'));
-                        modal.hide();
-                        location.reload(); // Actualiza la página
-                    }, 2000);
-                } else {
-                    mostrarAlertaEnModal(result.mensaje || "Error al agregar tareas.", "danger");
-                }
-
-            } catch (error) {
-                mostrarAlertaEnModal("Error al enviar el formulario. Intente de nuevo.", "danger");
-                console.error("Error:", error);
+        const payload = { [tareaId]: completada };
+        fetch('@Url.Action("ActualizarTareas", "Proyecto")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(r => r.json()).then(data => {
+            if (data.message) {
+                const a = document.getElementById('alertAjax');
+                document.getElementById('alertAjaxMsg').textContent = data.message;
+                a.style.display = '';
+                setTimeout(() => a.style.display = 'none', 2500);
             }
-        });
+        }).catch(console.error);
+    });
+});
 
-        // Función para mostrar alertas dentro del modal
-        function mostrarAlertaEnModal(mensaje, tipo = "danger") {
-          const alertContainer = document.getElementById("alertContainer");
-          alertContainer.innerHTML = `
-          <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
-            ${mensaje}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>`;
+// ---- Abrir modal agregar tarea ----
+document.querySelectorAll('.agregar-tareas-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const faseId = this.dataset.faseId;
+        try {
+            const res = await fetch(`/Proyecto/ObtenerFase?faseId=${faseId}`);
+            const data = await res.json();
+            document.getElementById('modalAgregarTareaLabel').textContent = `Agregar Tarea — ${data.nombre}`;
+            document.getElementById('faseIdHidden').value = data.id;
+            document.getElementById('formAgregarTareas').reset();
+            document.getElementById('alertContainerTarea').innerHTML = '';
+            new bootstrap.Modal(document.getElementById('modalAgregarTarea')).show();
+        } catch { }
+    });
+});
+
+// ---- Enviar tarea via AJAX ----
+document.getElementById('btnSubmitTarea').addEventListener('click', async function() {
+    const nombre = document.getElementById('inputTareaNombre').value.trim();
+    const ini    = document.getElementById('inputFechaInicio').value;
+    const fin    = document.getElementById('inputFechaFin').value;
+
+    if (!nombre) { mostrarAlertaTarea('El nombre de la tarea es obligatorio.', 'danger'); return; }
+    if (!ini || !fin) { mostrarAlertaTarea('Las fechas de inicio y fin son obligatorias.', 'danger'); return; }
+    if (new Date(ini) >= new Date(fin)) { mostrarAlertaTarea('La fecha de fin debe ser posterior a la de inicio.', 'danger'); return; }
+
+    const form = document.getElementById('formAgregarTareas');
+    const body = new FormData(form);
+
+    try {
+        const res = await fetch('/Proyecto/AgregarTareasModal', { method: 'POST', body });
+        const result = await res.json();
+
+        if (res.ok && result.exito) {
+            mostrarAlertaTarea(result.mensaje, 'success');
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('modalAgregarTarea')).hide();
+                location.reload();
+            }, 1200);
+        } else {
+            mostrarAlertaTarea(result.mensaje || 'Error al agregar la tarea.', 'danger');
         }
+    } catch {
+        mostrarAlertaTarea('Error de conexión. Intente de nuevo.', 'danger');
+    }
+});
 
+function mostrarAlertaTarea(msg, tipo) {
+    document.getElementById('alertContainerTarea').innerHTML =
+        `<div class="alert alert-${tipo} alert-dismissible fade show py-2 mb-0" role="alert">
+            ${msg}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+}
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const eliminarTareaBtns = document.querySelectorAll(".eliminar-tarea-btn");
-            const modalEliminarTarea = document.getElementById("modalEliminarTarea");
-            const tareaNombre = document.getElementById("tareaNombre");
-            const tareaIdInput = document.getElementById("tareaId");
+// ---- Eliminar tarea: pasar datos al modal ----
+document.querySelectorAll('.eliminar-tarea-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('tareaEliminarNombre').textContent = this.dataset.tareaNombre;
+        document.getElementById('tareaEliminarId').value = this.dataset.tareaId;
+    });
+});
 
-            eliminarTareaBtns.forEach(btn => {
-                btn.addEventListener("click", function () {
-                    const tareaId = btn.getAttribute("data-tarea-id");
-                    const tareaNombreTexto = btn.getAttribute("data-tarea-nombre");
+// ---- Editar estado de hito ----
+document.querySelectorAll('.editar-estado-hito-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('editarHitoId').value = this.dataset.hitoId;
+        document.getElementById('editarEstadoSelect').value = this.dataset.estadoActual;
+    });
+});
 
-                    tareaNombre.textContent = tareaNombreTexto;
-                    tareaIdInput.value = tareaId;
-                });
-            });
+// ---- Asignar cliente: búsqueda y selección ----
+(function() {
+    const hiddenId      = document.getElementById('clienteSeleccionadoId');
+    const nombreDisplay = document.getElementById('clienteSeleccionadoNombre');
+    const infoBox       = document.getElementById('clienteSeleccionadoInfo');
+    const sinSeleccion  = document.getElementById('sinClienteSeleccionado');
+    const btnAsignar    = document.getElementById('btnAsignarCliente');
+    const searchInput   = document.getElementById('buscarCliente');
+    const modalEl       = document.getElementById('modalAsignarCliente');
+
+    function getItems() {
+        return document.querySelectorAll('.cliente-item');
+    }
+
+    function filtrar(q) {
+        q = (q || '').toLowerCase().trim();
+        getItems().forEach(function(item) {
+            const nombre = (item.dataset.nombre || '').toLowerCase();
+            const correo = (item.dataset.correo || '').toLowerCase();
+            const coincide = !q || nombre.includes(q) || correo.includes(q);
+            item.style.display = coincide ? 'flex' : 'none';
         });
-    </script>
+    }
+
+    // Búsqueda en tiempo real — escucha input Y keyup para máxima compatibilidad
+    if (searchInput) {
+        searchInput.addEventListener('input', function() { filtrar(this.value); });
+        searchInput.addEventListener('keyup',  function() { filtrar(this.value); });
+    }
+
+    // Selección de cliente (delegación al contenedor para capturar items al momento)
+    const lista = document.getElementById('listaClientes');
+    if (lista) {
+        lista.addEventListener('click', function(e) {
+            const item = e.target.closest('.cliente-item');
+            if (!item) return;
+
+            getItems().forEach(function(i) {
+                i.style.background = '';
+                const ic = i.querySelector('.check-icon');
+                if (ic) ic.style.display = 'none';
+            });
+
+            item.style.background = '#eff6ff';
+            const ic = item.querySelector('.check-icon');
+            if (ic) ic.style.display = 'block';
+
+            hiddenId.value = item.dataset.id;
+            nombreDisplay.textContent = item.dataset.nombre;
+            infoBox.style.display = '';
+            sinSeleccion.style.display = 'none';
+            if (btnAsignar) btnAsignar.removeAttribute('disabled');
+        });
+
+        // Hover delegado
+        lista.addEventListener('mouseover', function(e) {
+            const item = e.target.closest('.cliente-item');
+            if (item && item.style.background !== 'rgb(239, 246, 255)') item.style.background = '#f8fafc';
+        });
+        lista.addEventListener('mouseout', function(e) {
+            const item = e.target.closest('.cliente-item');
+            if (item && hiddenId && item.dataset.id !== hiddenId.value) item.style.background = '';
+        });
+    }
+
+    // Al abrir el modal: limpiar búsqueda y mostrar todos los items
+    if (modalEl) {
+        modalEl.addEventListener('shown.bs.modal', function() {
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            getItems().forEach(function(i) { i.style.display = 'flex'; });
+        });
+    }
+})();
+</script>
 }

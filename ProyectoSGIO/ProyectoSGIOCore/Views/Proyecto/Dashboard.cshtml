@@ -1,207 +1,247 @@
-﻿@model ProyectoSGIOCore.Models.Proyecto
+@model ProyectoSGIOCore.Models.Proyecto
 @using Newtonsoft.Json
 @{
-    ViewData["Title"] = "Detalles del Proyecto";
+    ViewData["Title"] = "Dashboard del Proyecto";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var hitoDataJson = ViewBag.HitoDataJson;
-    var tareaDataJson = ViewBag.TareaDataJson;
-    var faseDataJson = ViewBag.FaseDataJson;
-    var progresoGeneral = ViewBag.ProgresoGeneral;
+    var hitoDataJson   = (string)ViewBag.HitoDataJson;
+    var tareaDataJson  = (string)ViewBag.TareaDataJson;
+    var faseDataJson   = (string)ViewBag.FaseDataJson;
+    int progresoGeneral = (int)ViewBag.ProgresoGeneral;
+    decimal costoTotal  = (decimal)ViewBag.CostoTotal;
+
+    int totalTareas = Model.Fases.SelectMany(f => f.Tareas).Count();
+    int tareasOk    = Model.Fases.SelectMany(f => f.Tareas).Count(t => t.Completada);
+    int totalHitos  = Model.Hitos.Count;
+    int hitosCompletos = Model.Hitos.Count(h => h.estado == 1 || h.estado == 4);
 }
 
-<link href="~/css/proyectos.css" rel="stylesheet" />
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@Model.Nombre</h1>
+        <p class="page-subtitle">Dashboard · Creado el @Model.FechaCreacion.ToString("dd/MM/yyyy")</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="GestionarProyecto" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-gear me-1"></i>Gestionar
+        </a>
+        <a asp-action="Proyectos" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
 
-<style>
-    .chart-container {
-        position: relative;
-        width: 100%;
-        max-width: 400px;
-        height: 400px;
-        background-color: white;
-        padding: 20px;
-        padding-bottom: 40px; /* Extra padding at the bottom */
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        margin: 10px;
-        overflow: hidden; /* Ensure no overflow */
-    }
-
-    canvas {
-        width: 100% !important;
-        height: 100% !important;
-    }
-
-    .chart-title {
-        text-align: center;
-        margin-bottom: 10px;
-        font-weight: bold;
-    }
-
-    .progress {
-        margin-bottom: 20px;
-    }
-</style>
-
-<h2>Dashboard</h2>
-
-<!-- Barra de progreso general del proyecto -->
-
-<div style="display: flex; justify-content:center; text-align:center; color:black; gap:15px">
-    <span style="font-weight:600; font-size:24px"> Progreso general del proyecto:  </span>
-    <div class="progress" style="width:50%; height:40px">
-        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style=" font-size:18px; align-content:flex-end; align-self:flex-end; color: black; height: 40px; width: @progresoGeneral%;" aria-valuenow="@progresoGeneral" aria-valuemin="0" aria-valuemax="100">
-            @progresoGeneral%
+<!-- Stat cards -->
+<div class="stats-row mb-4">
+    <div class="stat-mini">
+        <div class="stat-icon" style="background:rgba(62,100,255,.1);color:#3e64ff;">
+            <i class="bi bi-bar-chart-line"></i>
+        </div>
+        <div>
+            <p class="stat-label">Progreso General</p>
+            <h3 class="stat-value">@progresoGeneral%</h3>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-icon" style="background:rgba(16,185,129,.1);color:#10b981;">
+            <i class="bi bi-check2-circle"></i>
+        </div>
+        <div>
+            <p class="stat-label">Tareas Completadas</p>
+            <h3 class="stat-value">@tareasOk <small class="text-muted fs-6">/ @totalTareas</small></h3>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;">
+            <i class="bi bi-flag"></i>
+        </div>
+        <div>
+            <p class="stat-label">Hitos Alcanzados</p>
+            <h3 class="stat-value">@hitosCompletos <small class="text-muted fs-6">/ @totalHitos</small></h3>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-icon" style="background:rgba(139,92,246,.1);color:#8b5cf6;">
+            <i class="bi bi-layers"></i>
+        </div>
+        <div>
+            <p class="stat-label">Fases</p>
+            <h3 class="stat-value">@Model.Fases.Count</h3>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-icon" style="background:rgba(239,68,68,.1);color:#ef4444;">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div>
+            <p class="stat-label">Costo Total</p>
+            <h3 class="stat-value" style="font-size:1.1rem;">$@costoTotal.ToString("N2")</h3>
         </div>
     </div>
 </div>
 
-<!-- Sección de gráficos circulares (Hitos, Tareas, Fases) -->
-
-<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
-
-    <!-- Gráfico de Hitos -->
-    <div class="chart-container">
-        <div class="chart-title">Hitos</div>
-        <canvas id="hitoChart"></canvas>
+<!-- Progreso general bar -->
+<div class="table-card mb-4 p-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-600" style="font-size:14px;">Progreso General del Proyecto</span>
+        <span class="fw-700 text-primary">@progresoGeneral%</span>
     </div>
-
-    <!-- Gráfico de Tareas -->
-    <div class="chart-container">
-        <div class="chart-title">Tareas</div>
-        <canvas id="tareaChart"></canvas>
+    <div class="progress" style="height:12px;border-radius:6px;">
+        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated"
+             style="width:@progresoGeneral%;border-radius:6px;" role="progressbar"
+             aria-valuenow="@progresoGeneral" aria-valuemin="0" aria-valuemax="100">
+        </div>
     </div>
-
-    <!-- Gráfico de Fases -->
-    <div class="chart-container">
-        <div class="chart-title">Fases</div>
-        <canvas id="faseChart"></canvas>
-    </div>
-
+    <p class="text-muted mb-0 mt-2" style="font-size:13px;">@tareasOk de @totalTareas tareas completadas</p>
 </div>
 
-<!-- Sección de barras de progreso (Hitos, Tareas, Fases) -->
-
-<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
-
-    <!-- Progreso de Hitos -->
-    <div class="chart-container">
-        <div class="chart-title">
-            Hitos
-        </div>
-        <div class="card-body">
-            @foreach (var hito in ViewBag.HitoData)
-            {
-                <h4 class="small font-weight-bold">@hito.Nombre <span class="float-right">@hito.Count</span></h4>
-                <div class="progress mb-4">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: @hito.CountP%" aria-valuemin="0" aria-valuemax="10"></div>
-                </div>
-            }
+<!-- Charts + Progress Bars -->
+<div class="row g-4 mb-4">
+    <!-- Gráfico Hitos -->
+    <div class="col-12 col-lg-4">
+        <div class="table-card p-4 h-100">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Hitos por Estado</h6>
+            <div style="position:relative;height:220px;">
+                <canvas id="hitoChart"></canvas>
+            </div>
         </div>
     </div>
-
-    <!-- Progreso de Tareas -->
-    <div class="chart-container">
-        <div class="chart-title">
-            Tareas
-        </div>
-        <div class="card-body">
-            @foreach (var tarea in ViewBag.TareaData)
-            {
-                <h4 class="small font-weight-bold">@tarea.Nombre <span class="float-right">@tarea.Count%</span></h4>
-                <div class="progress mb-4">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: @tarea.CountP%" aria-valuemin="0" aria-valuemax="10"></div>
-                </div>
-            }
+    <!-- Gráfico Tareas -->
+    <div class="col-12 col-lg-4">
+        <div class="table-card p-4 h-100">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Tareas por Estado</h6>
+            <div style="position:relative;height:220px;">
+                <canvas id="tareaChart"></canvas>
+            </div>
         </div>
     </div>
-
-    <!-- Progreso de Fases -->
-    <div class="chart-container">
-        <div class="chart-title">
-            Fases
-        </div>
-        <div class="card-body">
-            @foreach (var fase in ViewBag.FaseData)
-            {
-                <h4 class="small font-weight-bold">@fase.Nombre <span class="float-right">@fase.PorcentajeCompletadas%</span></h4>
-                <div class="progress mb-4">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: @fase.PorcentajeCompletadas%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            }
+    <!-- Progreso por fase -->
+    <div class="col-12 col-lg-4">
+        <div class="table-card p-4 h-100">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Progreso por Fase</h6>
+            <div id="faseProgressBars"></div>
         </div>
     </div>
 </div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Detalle de fases -->
+<div class="table-card mb-4">
+    <div class="p-4 border-bottom">
+        <h6 class="mb-0 fw-600" style="font-size:13px;">Detalle de Fases</h6>
+    </div>
+    <table class="sgio-table mb-0">
+        <thead>
+            <tr>
+                <th>Fase</th>
+                <th>Tareas</th>
+                <th>Completadas</th>
+                <th>Costo</th>
+                <th>Progreso</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var fase in Model.Fases)
+            {
+                int ft = fase.Tareas.Count;
+                int fc = fase.Tareas.Count(t => t.Completada);
+                int fp = ft == 0 ? 0 : fc * 100 / ft;
+                <tr>
+                    <td class="fw-500">@fase.Nombre</td>
+                    <td>@ft</td>
+                    <td>@fc</td>
+                    <td>$@fase.CostoTotal.ToString("N2")</td>
+                    <td style="min-width:120px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height:6px;border-radius:3px;">
+                                <div class="progress-bar @(fp == 100 ? "bg-success" : "bg-primary")"
+                                     style="width:@fp%;border-radius:3px;"></div>
+                            </div>
+                            <span style="font-size:12px;color:#64748b;min-width:32px;">@fp%</span>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
 
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    function createDoughnutChart(ctx, data, labels, colors, borderColors) {
+    const hitoData  = JSON.parse('@Html.Raw(hitoDataJson ?? "[]")');
+    const tareaData = JSON.parse('@Html.Raw(tareaDataJson ?? "[]")');
+    const faseData  = JSON.parse('@Html.Raw(faseDataJson ?? "[]")');
+
+    const palette = {
+        blue:   { bg: 'rgba(62,100,255,.2)',    border: '#3e64ff' },
+        green:  { bg: 'rgba(16,185,129,.2)',    border: '#10b981' },
+        amber:  { bg: 'rgba(245,158,11,.2)',    border: '#f59e0b' },
+        red:    { bg: 'rgba(239,68,68,.2)',     border: '#ef4444' },
+        purple: { bg: 'rgba(139,92,246,.2)',    border: '#8b5cf6' },
+    };
+    const colors = [palette.blue, palette.green, palette.amber, palette.red, palette.purple];
+
+    function makeDonut(ctx, labels, counts, colorSet) {
         return new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: labels,
+                labels,
                 datasets: [{
-                    data: data,
-                    backgroundColor: colors,
-                    borderColor: borderColors,
-                    borderWidth: 1
+                    data: counts,
+                    backgroundColor: colorSet.map(c => c.bg),
+                    borderColor: colorSet.map(c => c.border),
+                    borderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: {
-                    padding: {
-                        bottom: 20 // Extra padding to prevent overflow
-                    }
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } }
                 }
             }
         });
     }
 
-    var hitoData = JSON.parse('@Html.Raw(hitoDataJson)');
-    var tareaData = JSON.parse('@Html.Raw(tareaDataJson)');
-    var faseData = JSON.parse('@Html.Raw(faseDataJson)');
-
-    // Colores para hitos y fases
-    var colors = [
-        'rgba(255, 99, 132, 0.2)',  // Light Red
-        'rgba(75, 192, 75, 0.2)',   // Light Green
-        'rgba(255, 206, 86, 0.2)'    // Light Yellow
-    ];
-    var borderColors = [
-        'rgba(255, 99, 132, 1)',    // Darker Red
-        'rgba(75, 192, 75, 1)',     // Darker Green
-        'rgba(255, 206, 86, 1)'     // Darker Yellow
-    ];
-
-    // Crear gráfico de hitos
-    var hitoCtx = document.getElementById('hitoChart').getContext('2d');
-    createDoughnutChart(hitoCtx, hitoData.map(d => d.Count), hitoData.map(d => d.Nombre), colors, borderColors);
-
-    // Función para generar colores dinámicos de tareas
-    function getTareaColors(tareaData) {
-        return tareaData.map(tarea => tarea.Completada ? 'rgba(75, 192, 75, 0.2)' : 'rgba(255, 99, 132, 0.2)');
+    // Hitos chart
+    if (hitoData.length) {
+        makeDonut(
+            document.getElementById('hitoChart').getContext('2d'),
+            hitoData.map(d => d.Nombre || 'Sin estado'),
+            hitoData.map(d => d.Count),
+            hitoData.map((_, i) => colors[i % colors.length])
+        );
     }
 
-    function getTareaBorderColors(tareaData) {
-        return tareaData.map(tarea => tarea.Completada ? 'rgba(75, 192, 75, 1)' : 'rgba(255, 99, 132, 1)');
+    // Tareas chart
+    if (tareaData.length) {
+        makeDonut(
+            document.getElementById('tareaChart').getContext('2d'),
+            tareaData.map(d => d.Nombre),
+            tareaData.map(d => d.Count),
+            tareaData.map(d => d.Completada ? palette.green : palette.red)
+        );
     }
 
-    // Crear gráfico de tareas
-    var tareaCtx = document.getElementById('tareaChart').getContext('2d');
-    createDoughnutChart(
-        tareaCtx,
-        tareaData.map(d => d.Count),
-        tareaData.map(d => d.Nombre),
-        getTareaColors(tareaData), // Colores dinámicos
-        getTareaBorderColors(tareaData) // Bordes dinámicos
-    );
-
-    // Crear gráfico de fases
-    var faseCtx = document.getElementById('faseChart').getContext('2d');
-    var faseLabels = faseData.map(f => f.Nombre);
-    var faseCounts = faseData.map(f => f.PorcentajeCompletadas);
-    createDoughnutChart(faseCtx, faseCounts, faseLabels, colors, borderColors);
+    // Fase progress bars
+    const faseContainer = document.getElementById('faseProgressBars');
+    if (faseData.length === 0) {
+        faseContainer.innerHTML = '<p class="text-muted" style="font-size:13px;">Sin fases registradas.</p>';
+    } else {
+        faseData.forEach(f => {
+            const pct = f.PorcentajeCompletadas;
+            const bar = document.createElement('div');
+            bar.className = 'mb-3';
+            bar.innerHTML = `
+                <div class="d-flex justify-content-between mb-1">
+                    <span style="font-size:13px;font-weight:500;">${f.Nombre}</span>
+                    <span style="font-size:12px;color:#64748b;">${pct}%</span>
+                </div>
+                <div class="progress" style="height:7px;border-radius:4px;">
+                    <div class="progress-bar ${pct === 100 ? 'bg-success' : 'bg-primary'}" style="width:${pct}%;border-radius:4px;"></div>
+                </div>`;
+            faseContainer.appendChild(bar);
+        });
+    }
 </script>
+}

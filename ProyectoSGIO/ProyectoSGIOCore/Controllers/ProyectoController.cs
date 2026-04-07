@@ -219,14 +219,24 @@ namespace ProyectoSGIOCore.Controllers
             var proyecto = await _dbContext.Proyectos
                 .Include(p => p.Fases)
                 .ThenInclude(f => f.Tareas)
-                .Include(h => h.Hitos)
+                .Include(p => p.Hitos)
                 .ThenInclude(u => u.Usuario)
-
+                .Include(p => p.Usuario)
                 .FirstOrDefaultAsync(p => p.Id == id);
-            var usuarios = await _dbContext.Usuarios
+
+            if (proyecto == null)
+            {
+                TempData["MensajeError"] = "Proyecto no encontrado.";
+                return RedirectToAction("Proyectos");
+            }
+
+            var empleados = await _dbContext.Usuarios
                 .Where(u => u.Rol.Nombre == "Empleado")
                 .ToListAsync();
 
+            var clientes = await _dbContext.Usuarios
+                .Where(u => u.Rol.Nombre == "Usuario")
+                .ToListAsync();
 
             var estadosHitos = new List<EstadoHitoVM>
             {
@@ -234,18 +244,14 @@ namespace ProyectoSGIOCore.Controllers
                 new EstadoHitoVM { Id = 2, Nombre = "Pendiente" },
                 new EstadoHitoVM { Id = 3, Nombre = "En Progreso" },
                 new EstadoHitoVM { Id = 4, Nombre = "Aprobado" },
-                new EstadoHitoVM { Id = 5, Nombre = "Rechazado" }};
+                new EstadoHitoVM { Id = 5, Nombre = "Rechazado" }
+            };
 
-            ViewBag.Usuarios = new SelectList(usuarios, "IdUsuario", "Correo");
+            ViewBag.Usuarios = new SelectList(empleados, "IdUsuario", "Correo");
+            ViewBag.Clientes = clientes;
             ViewBag.ProyectoId = id;
             ViewBag.EstadosHito = new SelectList(estadosHitos, "Id", "Nombre");
-
-
-            if (proyecto == null)
-            {
-                TempData["MensajeError"] = "Proyecto no encontrado.";
-                return RedirectToAction("Proyectos");
-            }
+            ViewBag.EstadosHitoLista = estadosHitos;
 
             return View(proyecto);
         }
@@ -326,9 +332,9 @@ namespace ProyectoSGIOCore.Controllers
             ViewBag.TareaDataJson = JsonConvert.SerializeObject(tareaData);
             ViewBag.FaseDataJson = JsonConvert.SerializeObject(faseData);
             ViewBag.CostoTotal = costoTotal;
-            ViewBag.ProgresoGeneral = progresoGeneral; // Pasar el progreso general a la vista
+            ViewBag.ProgresoGeneral = progresoGeneral;
 
-            return View();
+            return View(proyecto);
         }
 
         //Clientes
@@ -373,7 +379,7 @@ namespace ProyectoSGIOCore.Controllers
             await _dbContext.SaveChangesAsync();
 
             TempData["MensajeExito"] = "Cliente asignado correctamente.";
-            return RedirectToAction("Proyectos");
+            return RedirectToAction("GestionarProyecto", new { id });
         }
 
         //Fases
@@ -658,6 +664,23 @@ namespace ProyectoSGIOCore.Controllers
                 hito.estado = 5; // Estado "Rechazado"
                 _dbContext.SaveChanges();
             }
+            return RedirectToAction("GestionarProyecto", new { id = hito.ProyectoId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ActualizarEstadoHito(int hitoId, int estadoId)
+        {
+            var hito = await _dbContext.Hitos.FindAsync(hitoId);
+            if (hito == null)
+            {
+                TempData["MensajeError"] = "Hito no encontrado.";
+                return RedirectToAction("Proyectos");
+            }
+
+            hito.estado = estadoId;
+            await _dbContext.SaveChangesAsync();
+
+            TempData["MensajeExito"] = "Estado del hito actualizado correctamente.";
             return RedirectToAction("GestionarProyecto", new { id = hito.ProyectoId });
         }
 

@@ -8,8 +8,6 @@
     int planif      = Model.Count(p => p.Estado == ProyectoSGIOCore.Models.EstadoProyecto.Planificacion);
 }
 
-<link href="~/css/proyectos.css" rel="stylesheet" />
-
 @if (TempData["MensajeExito"] != null)
 {
     <div class="sgio-alert success"><i class="bi bi-check-circle-fill"></i> @TempData["MensajeExito"]</div>

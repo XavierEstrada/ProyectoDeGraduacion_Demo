@@ -1,58 +1,269 @@
-﻿@model ProyectoSGIOCore.Models.Proyecto
+@model ProyectoSGIOCore.Models.Proyecto
 @{
-    ViewBag.Title = "CrearProyecto Proyecto";
+    ViewBag.Title = "Nuevo Proyecto";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<link href="~/css/proyectos.css" rel="stylesheet" />
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Nuevo Proyecto</h1>
+        <p class="page-subtitle">Define el nombre, fases y tareas del proyecto</p>
+    </div>
+    <a asp-action="Proyectos" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Volver
+    </a>
+</div>
+
+<div id="alertGlobal" style="display:none;" class="sgio-alert danger mb-3">
+    <i class="bi bi-exclamation-circle me-2"></i><span id="alertGlobalMsg"></span>
+</div>
 
 @if (TempData["MensajeError"] != null)
 {
-    <div class="alert alert-danger text-center mt-3" role="alert">
-        @TempData["MensajeError"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="sgio-alert danger mb-3">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["MensajeError"]
     </div>
 }
 
-<!-- Sección: Encabezado del Proyecto -->
-<h2 class="section-title">Crear Proyecto</h2>
+<form asp-action="CrearProyecto" method="post" id="formCrearProyecto" novalidate>
 
-<form asp-action="CrearProyecto" method="post">
-    <!-- Campo para el nombre del proyecto -->
-    <div class="mb-3">
-        <label class="form-label">Nombre del Proyecto</label>
-        <input asp-for="Nombre" class="form-control" placeholder="Ingrese el nombre del proyecto" />
-        <span asp-validation-for="Nombre" class="text-danger"></span>
+    <!-- Nombre del proyecto -->
+    <div class="table-card mb-4">
+        <div class="p-4">
+            <h6 class="mb-3" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:600;">Información General</h6>
+            <label class="form-label fw-500">Nombre del Proyecto <span class="text-danger">*</span></label>
+            <input asp-for="Nombre" id="proyectoNombre" class="form-control" placeholder="Ej: Construcción Torre Sur" autocomplete="off" />
+            <div class="invalid-feedback" id="errorNombreProyecto">El nombre del proyecto es obligatorio.</div>
+        </div>
     </div>
 
-    <hr />
+    <!-- Sección fases -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="mb-0 fw-600">Fases del Proyecto</h5>
+            <p class="text-muted mb-0" style="font-size:13px;">Cada fase puede tener múltiples tareas</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="agregarFase()">
+            <i class="bi bi-plus-lg me-1"></i>Agregar Fase
+        </button>
+    </div>
 
-    <h3>Fases</h3>
-    <!-- Contenedor con desplazamiento para las fases -->
-    <div class="crear-proyecto-container">
-        <div class="fases-scroll-container">
-            <div id="fases-container">
-                <!-- Aquí se añadirán dinámicamente las fases como "cards" -->
-            </div>
+    <div id="fasesContainer">
+        <div id="placeholderFases" class="table-card p-5 text-center text-muted mb-3">
+            <i class="bi bi-stack" style="font-size:2.5rem;opacity:.25;"></i>
+            <p class="mb-0 mt-3">Todavía no hay fases. Haz clic en <strong>Agregar Fase</strong> para comenzar.</p>
+        </div>
+    </div>
 
-            <!-- Totales por fase y total del proyecto -->
-            <div class="mt-4">
-                <h4>Costo por cada fase:</h4>
-                <ul id="totalesFases">
-                    <!-- Aquí se agregarán dinámicamente los totales por fase -->
-                </ul>
-                <h4>Costo total del proyecto: $<span id="proyectoTotal">0.00</span></h4>
+    <!-- Resumen de costos -->
+    <div class="table-card mb-4" id="resumenCostos" style="display:none;">
+        <div class="p-4">
+            <h6 class="mb-3" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:600;">Resumen de Costos</h6>
+            <ul id="listaCostosFases" class="list-unstyled mb-3" style="font-size:14px;"></ul>
+            <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                <span class="fw-600">Costo Total del Proyecto</span>
+                <span class="fw-700 text-primary" style="font-size:1.15rem;">$<span id="costoTotalProyecto">0.00</span></span>
             </div>
         </div>
     </div>
 
-    <button type="button" class="btn btn-primary mt-3" onclick="addPhase()">Agregar Fase</button>
-    <button type="submit" class="btn btn-success mt-3">Crear Proyecto</button>
+    <!-- Botones -->
+    <div class="d-flex gap-2 justify-content-end mb-5">
+        <a asp-action="Proyectos" class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Crear Proyecto
+        </button>
+    </div>
+
 </form>
 
-<!-- Validaciones para el modelo -->
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+<script>
+let faseCount = 0;
+const tareaCount = {};
+
+function agregarFase() {
+    document.getElementById('placeholderFases').style.display = 'none';
+    document.getElementById('resumenCostos').style.display = '';
+
+    const fi = faseCount++;
+    tareaCount[fi] = 0;
+
+    const card = document.createElement('div');
+    card.className = 'table-card mb-3';
+    card.id = `faseCard_${fi}`;
+    card.innerHTML = `
+        <div class="p-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="d-flex align-items-center gap-3 flex-grow-1 me-3">
+                    <span class="badge rounded-pill bg-primary" style="font-size:11px;padding:5px 10px;">Fase ${fi + 1}</span>
+                    <input type="text" name="fases[${fi}].Nombre"
+                           class="form-control fase-nombre"
+                           placeholder="Nombre de la fase (ej: Cimentación)"
+                           oninput="actualizarCostos()"
+                           style="max-width:350px;" />
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0" onclick="eliminarFase(${fi})">
+                    <i class="bi bi-trash me-1"></i>Eliminar
+                </button>
+            </div>
+
+            <div id="tareasContainer_${fi}" class="mb-3"></div>
+
+            <div class="d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarTarea(${fi})">
+                    <i class="bi bi-plus me-1"></i>Agregar Tarea
+                </button>
+                <span style="font-size:13px;color:#64748b;">
+                    Subtotal fase: <strong class="text-dark costo-label-${fi}">$0.00</strong>
+                </span>
+            </div>
+        </div>
+    `;
+    document.getElementById('fasesContainer').appendChild(card);
+    actualizarCostos();
+}
+
+function eliminarFase(fi) {
+    const el = document.getElementById(`faseCard_${fi}`);
+    if (el) el.remove();
+    actualizarCostos();
+    const fases = document.querySelectorAll('[id^="faseCard_"]');
+    if (fases.length === 0) {
+        document.getElementById('placeholderFases').style.display = '';
+        document.getElementById('resumenCostos').style.display = 'none';
     }
+}
+
+function agregarTarea(fi) {
+    if (tareaCount[fi] === undefined) tareaCount[fi] = 0;
+    const ti = tareaCount[fi]++;
+
+    const container = document.getElementById(`tareasContainer_${fi}`);
+    const row = document.createElement('div');
+    row.className = 'border rounded-3 p-3 mb-2';
+    row.id = `tareaRow_${fi}_${ti}`;
+    row.style.background = '#f8fafc';
+    row.innerHTML = `
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label mb-1" style="font-size:12px;color:#64748b;">Nombre <span class="text-danger">*</span></label>
+                <input type="text" name="fases[${fi}].Tareas[${ti}].Nombre"
+                       class="form-control form-control-sm tarea-nombre"
+                       placeholder="Nombre de la tarea" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label mb-1" style="font-size:12px;color:#64748b;">Fecha Inicio <span class="text-danger">*</span></label>
+                <input type="date" name="fases[${fi}].Tareas[${ti}].FechaInicio"
+                       class="form-control form-control-sm fecha-inicio" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label mb-1" style="font-size:12px;color:#64748b;">Fecha Fin <span class="text-danger">*</span></label>
+                <input type="date" name="fases[${fi}].Tareas[${ti}].FechaFin"
+                       class="form-control form-control-sm fecha-fin" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label mb-1" style="font-size:12px;color:#64748b;">Costo ($)</label>
+                <input type="number" name="fases[${fi}].Tareas[${ti}].Costo"
+                       class="form-control form-control-sm tarea-costo"
+                       min="0" step="0.01" placeholder="0.00"
+                       oninput="actualizarCostos()" />
+            </div>
+            <div class="col-6 col-md-3 d-flex justify-content-end">
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                        onclick="eliminarTarea('${fi}','${ti}')">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    container.appendChild(row);
+}
+
+function eliminarTarea(fi, ti) {
+    const el = document.getElementById(`tareaRow_${fi}_${ti}`);
+    if (el) el.remove();
+    actualizarCostos();
+}
+
+function actualizarCostos() {
+    const lista = document.getElementById('listaCostosFases');
+    lista.innerHTML = '';
+    let totalProyecto = 0;
+
+    document.querySelectorAll('[id^="faseCard_"]').forEach(faseEl => {
+        const fi = faseEl.id.replace('faseCard_', '');
+        const nombreEl = faseEl.querySelector('.fase-nombre');
+        const nombre = nombreEl && nombreEl.value.trim() ? nombreEl.value.trim() : `Fase ${parseInt(fi) + 1}`;
+        let totalFase = 0;
+
+        faseEl.querySelectorAll('.tarea-costo').forEach(inp => {
+            totalFase += parseFloat(inp.value) || 0;
+        });
+
+        const label = faseEl.querySelector(`.costo-label-${fi}`);
+        if (label) label.textContent = `$${totalFase.toFixed(2)}`;
+        totalProyecto += totalFase;
+
+        const li = document.createElement('li');
+        li.className = 'd-flex justify-content-between mb-1';
+        li.style.fontSize = '13px';
+        li.innerHTML = `<span class="text-muted">${nombre}</span><span>$${totalFase.toFixed(2)}</span>`;
+        lista.appendChild(li);
+    });
+
+    document.getElementById('costoTotalProyecto').textContent = totalProyecto.toFixed(2);
+}
+
+document.getElementById('formCrearProyecto').addEventListener('submit', function(e) {
+    limpiarErrores();
+    let errores = [];
+
+    const nombre = document.getElementById('proyectoNombre');
+    if (!nombre.value.trim()) {
+        nombre.classList.add('is-invalid');
+        errores.push('El nombre del proyecto es obligatorio.');
+    }
+
+    document.querySelectorAll('[id^="faseCard_"]').forEach((faseEl, idx) => {
+        const nombreFase = faseEl.querySelector('.fase-nombre');
+        if (!nombreFase || !nombreFase.value.trim()) {
+            if (nombreFase) nombreFase.classList.add('is-invalid');
+            errores.push(`La fase ${idx + 1} no tiene nombre.`);
+        }
+
+        const tareaNames = faseEl.querySelectorAll('.tarea-nombre');
+        const fechaIni = faseEl.querySelectorAll('.fecha-inicio');
+        const fechaFin = faseEl.querySelectorAll('.fecha-fin');
+
+        tareaNames.forEach((tn, ti) => {
+            if (!tn.value.trim()) {
+                tn.classList.add('is-invalid');
+                errores.push(`Una tarea de la fase ${idx + 1} no tiene nombre.`);
+            }
+            if (fechaIni[ti] && fechaFin[ti]) {
+                if (!fechaIni[ti].value || !fechaFin[ti].value) {
+                    errores.push(`Todas las tareas deben tener fechas de inicio y fin.`);
+                } else if (new Date(fechaIni[ti].value) >= new Date(fechaFin[ti].value)) {
+                    fechaFin[ti].classList.add('is-invalid');
+                    errores.push(`La fecha de fin debe ser posterior a la de inicio (tarea ${ti + 1}, fase ${idx + 1}).`);
+                }
+            }
+        });
+    });
+
+    if (errores.length > 0) {
+        e.preventDefault();
+        const alertDiv = document.getElementById('alertGlobal');
+        document.getElementById('alertGlobalMsg').textContent = errores[0];
+        alertDiv.style.display = '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+});
+
+function limpiarErrores() {
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    document.getElementById('alertGlobal').style.display = 'none';
+}
+</script>
 }
