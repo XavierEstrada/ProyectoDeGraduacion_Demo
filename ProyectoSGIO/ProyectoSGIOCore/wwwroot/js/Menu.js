@@ -23,7 +23,8 @@
 
     // Auto-open submenu if a child link is active
     $('.sidebar-submenu a').each(function () {
-        if (window.location.pathname.toLowerCase().indexOf($(this).attr('href').toLowerCase()) !== -1) {
+        var href = $(this).attr('href');
+        if (href && href.length > 1 && window.location.pathname.toLowerCase().indexOf(href.toLowerCase()) !== -1) {
             $(this).closest('.sidebar-submenu').show();
             $(this).closest('.sidebar-submenu').siblings('.has-submenu').addClass('open');
         }
