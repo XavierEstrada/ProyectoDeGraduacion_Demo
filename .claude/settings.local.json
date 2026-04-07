@@ -6,7 +6,22 @@
       "Bash(xargs grep:*)",
       "Bash(find C:GitHubProyectoDeGraduacion_DemoProyectoSGIOProyectoSGIOCoreModels -type f -name *.cs)",
       "Bash(find C:GitHubProyectoDeGraduacion_DemoProyectoSGIOProyectoSGIOCoreMigrations -type f -name *.cs)",
-      "Bash(find C:GitHubProyectoDeGraduacion_DemoProyectoSGIOProyectoSGIOCoreViewModels -type f -name *.cs)"
+      "Bash(find C:GitHubProyectoDeGraduacion_DemoProyectoSGIOProyectoSGIOCoreViewModels -type f -name *.cs)",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__list_organizations",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__list_projects",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__get_cost",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__confirm_cost",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__create_project",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__get_project_url",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__get_project",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__execute_sql",
+      "Bash(dotnet ef:*)",
+      "Bash(dotnet tool:*)",
+      "Bash(dotnet-ef migrations:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet-ef database:*)",
+      "mcp__0186bb04-588f-4907-bf20-f240457a2997__apply_migration",
+      "Bash(\"C:/GitHub/ProyectoDeGraduacion_Demo/.gitignore\")"
     ]
   }
 }

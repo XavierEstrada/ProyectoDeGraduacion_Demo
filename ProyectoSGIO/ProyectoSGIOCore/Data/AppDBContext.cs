@@ -31,7 +31,6 @@ namespace ProyectoSGIOCore.Data
             {
                 tb.HasKey(u => u.IdUsuario);
                 tb.Property(u => u.IdUsuario)
-                  .UseIdentityColumn()
                   .ValueGeneratedOnAdd();
 
                 tb.Property(u => u.Nombre).HasMaxLength(50).IsRequired();
@@ -53,7 +52,6 @@ namespace ProyectoSGIOCore.Data
             {
                 tb.HasKey(r => r.IdRol);
                 tb.Property(r => r.IdRol)
-                  .UseIdentityColumn()
                   .ValueGeneratedOnAdd();
 
                 tb.Property(r => r.Nombre).HasMaxLength(50).IsRequired();
@@ -68,7 +66,6 @@ namespace ProyectoSGIOCore.Data
             {
                 tb.HasKey(p => p.IdProveedor);
                 tb.Property(p => p.IdProveedor)
-                  .UseIdentityColumn()
                   .ValueGeneratedOnAdd();
 
                 tb.Property(p => p.Nombre).HasMaxLength(50).IsRequired();
@@ -83,7 +80,6 @@ namespace ProyectoSGIOCore.Data
             {
                 tb.HasKey(e => e.IdEmpleado);
                 tb.Property(e => e.IdEmpleado)
-                  .UseIdentityColumn()
                   .ValueGeneratedOnAdd();
 
                 tb.Property(u => u.Nombre).HasMaxLength(50).IsRequired();

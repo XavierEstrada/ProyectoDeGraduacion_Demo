@@ -1,0 +1,8 @@
+**/.git
+**/.gitignore
+**/bin
+**/obj
+**/*.user
+**/*.suo
+**/appsettings.Development.json
+migration_init.sql
