@@ -21,7 +21,8 @@
       "Bash(dotnet build:*)",
       "Bash(dotnet-ef database:*)",
       "mcp__0186bb04-588f-4907-bf20-f240457a2997__apply_migration",
-      "Bash(\"C:/GitHub/ProyectoDeGraduacion_Demo/.gitignore\")"
+      "Bash(\"C:/GitHub/ProyectoDeGraduacion_Demo/.gitignore\")",
+      "Bash(powershell -Command \":*)"
     ]
   }
 }

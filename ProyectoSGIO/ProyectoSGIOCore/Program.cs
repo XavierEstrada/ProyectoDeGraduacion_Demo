@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using ProyectoSGIOCore.Models;
 using ProyectoSGIOCore.Services;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
