@@ -15,6 +15,7 @@ Sistema web para la administración de proyectos de construcción. Permite gesti
 - [Roles y Permisos](#roles-y-permisos)
 - [Modelos de Datos](#modelos-de-datos)
 - [Autenticación y Seguridad](#autenticación-y-seguridad)
+- [Despliegue](#despliegue)
 - [Configuración Local](#configuración-local)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Variables de Entorno](#variables-de-entorno)
@@ -64,8 +65,9 @@ Sistema web para la administración de proyectos de construcción. Permite gesti
 |---|---|---|
 | Framework | ASP.NET Core MVC | .NET 8 |
 | ORM | Entity Framework Core | 8.x |
-| Base de datos | SQL Server | Express / Azure SQL |
-| Autenticación | Cookie Authentication | ASP.NET Core Identity |
+| Base de datos | PostgreSQL | 17.x |
+| Driver BD | Npgsql.EntityFrameworkCore.PostgreSQL | 8.x |
+| Autenticación | Cookie Authentication | ASP.NET Core |
 | UI | Bootstrap | 5.3 |
 | Tablas | DataTables | 2.1.8 |
 | Gráficos | Chart.js | 4.4.0 |
@@ -73,6 +75,7 @@ Sistema web para la administración de proyectos de construcción. Permite gesti
 | Iconos | Bootstrap Icons | 1.x |
 | Fuente | Poppins | Google Fonts |
 | JSON | Newtonsoft.Json | 13.x |
+| Contenedor | Docker | — |
 
 ---
 
@@ -88,14 +91,17 @@ ProyectoSGIOCore/
 ├── Data/
 │   └── AppDBContext.cs   # DbContext de Entity Framework
 ├── Services/             # Servicios auxiliares (utilidades, SMTP)
-├── Migrations/           # Historial de migraciones EF Core
+├── Migrations/           # Migración única InitialCreate para PostgreSQL
+├── Dockerfile            # Imagen Docker para despliegue
 └── wwwroot/
     ├── css/styles.css    # Sistema de diseño global
-    ├── js/menu.js        # Toggle sidebar + submenús
+    ├── js/Menu.js        # Toggle sidebar + submenús
     └── lib/              # Bootstrap, jQuery, validaciones
 ```
 
 El proyecto sigue el patrón **MVC estricto**: los controladores consultan directamente el `AppDBContext` mediante EF Core con carga ansiosa (`Include` / `ThenInclude`). No hay capa de repositorio intermedia.
+
+Las migraciones se aplican automáticamente al arrancar la aplicación mediante `db.Database.Migrate()` en `Program.cs`.
 
 ---
 
@@ -209,12 +215,43 @@ CierreFinanciero { Id, ... }
 
 ---
 
+## Despliegue
+
+La aplicación está contenerizada con Docker y desplegada en **Railway** con **Railway PostgreSQL**.
+
+### Infraestructura
+| Componente | Servicio |
+|---|---|
+| Aplicación | Railway Web Service (Docker) |
+| Base de datos | Railway PostgreSQL |
+
+### Dockerfile
+La imagen usa un build multi-stage:
+1. **Build stage** (`mcr.microsoft.com/dotnet/sdk:8.0`): compila y publica la app
+2. **Runtime stage** (`mcr.microsoft.com/dotnet/aspnet:8.0`): imagen final ligera
+
+La app corre en el puerto `8080` con `ASPNETCORE_URLS=http://+:8080`.
+
+### Migraciones automáticas
+Al arrancar, `Program.cs` ejecuta `db.Database.Migrate()` que aplica cualquier migración pendiente. No se requiere intervención manual al desplegar.
+
+### Variables requeridas en Railway
+| Variable | Descripción |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | Cadena de conexión PostgreSQL interna de Railway |
+| `settings__SecretKey` | Clave AES-256 de 32 caracteres para cifrado de contraseñas |
+| `settings__correoSMTP` | Correo origen para recuperación de cuenta |
+| `settings__claveSMTP` | Contraseña del correo SMTP |
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
+
+---
+
 ## Configuración Local
 
 ### Requisitos
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8)
-- SQL Server Express (o SQL Server Developer)
+- PostgreSQL 14+ (local o instancia cloud)
 - Visual Studio 2022 o VS Code con extensión C#
 
 ### Pasos
@@ -227,49 +264,36 @@ cd ProyectoDeGraduacion_Demo
 
 **2. Configurar la conexión a la base de datos**
 
-Edita `ProyectoSGIO/ProyectoSGIOCore/appsettings.Development.json`:
+Crea el archivo `ProyectoSGIO/ProyectoSGIOCore/appsettings.Development.json` (no se commitea):
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=TU_SERVIDOR\\SQLEXPRESS;Database=SGIO_Dev;Trusted_Connection=True;MultipleActiveResultSets=True;TrustServerCertificate=True;"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=sgio_dev;Username=postgres;Password=tu_password"
   }
 }
 ```
-Reemplaza `TU_SERVIDOR` con el nombre de tu máquina o instancia SQL Server.
 
-**3. Aplicar migraciones**
-
-Desde la Consola del Administrador de Paquetes en Visual Studio:
-```powershell
-Update-Database
-```
-
-O desde terminal:
+**3. Ejecutar el proyecto**
 ```bash
 cd ProyectoSGIO/ProyectoSGIOCore
-dotnet ef database update
-```
-
-**4. Ejecutar el proyecto**
-```bash
 dotnet run
 ```
 
-O presiona `F5` en Visual Studio. La aplicación abre en `https://localhost:{puerto}`.
+Las migraciones se aplican automáticamente al arrancar. La aplicación abre en `https://localhost:{puerto}`.
 
-**5. Primer acceso**
+**4. Primer acceso**
 
-Crea el primer usuario administrador directamente en la base de datos o mediante el registro si está habilitado. El sistema crea automáticamente las tablas con la migración.
+El sistema crea automáticamente los roles y un usuario administrador inicial al aplicar la migración. Puedes crear usuarios adicionales desde `/Administrativo/CrearUsuario`.
 
-### Datos de prueba
-
-En la carpeta raíz del repositorio (o en este README) se encuentran scripts SQL con `INSERT` de ejemplo para:
-- `Inventario` — 23 registros de materiales de construcción
-- `Proveedores` — 22 registros de empresas proveedoras
-- `Empleados` — 23 registros de personal
-- `Usuario` — 30 registros distribuidos en los 4 roles
-
-> Para los registros de `Usuario`, el campo `Clave` debe usar el mismo cifrado AES-256 de la aplicación. Se recomienda crear usuarios desde la interfaz web (`/Administrativo/CrearUsuario`) o copiar el valor cifrado de un usuario ya existente.
+### Ejecutar con Docker localmente
+```bash
+cd ProyectoSGIO/ProyectoSGIOCore
+docker build -t sgio-demo .
+docker run -p 8080:8080 \
+  -e ConnectionStrings__DefaultConnection="Host=host.docker.internal;Port=5432;Database=sgio_dev;Username=postgres;Password=tu_password" \
+  -e settings__SecretKey="tu_clave_de_32_caracteres_aqui__" \
+  sgio-demo
+```
 
 ---
 
@@ -280,6 +304,8 @@ ProyectoDeGraduacion_Demo/
 ├── README.md
 └── ProyectoSGIO/
     └── ProyectoSGIOCore/
+        ├── Dockerfile
+        ├── .dockerignore
         ├── Controllers/
         │   ├── AccesoController.cs          # Login, registro, perfil, recuperación
         │   ├── AdministrativoController.cs  # Gestión de usuarios y roles
@@ -309,7 +335,7 @@ ProyectoDeGraduacion_Demo/
         │
         ├── Services/
         │
-        ├── Migrations/                      # 20+ migraciones EF Core
+        ├── Migrations/                      # Migración única InitialCreate (PostgreSQL)
         │
         ├── Views/
         │   ├── Acceso/                      # Login, registro, perfil, 2FA
@@ -326,14 +352,14 @@ ProyectoDeGraduacion_Demo/
         │
         ├── wwwroot/
         │   ├── css/
-        │   │   └── styles.css               # Sistema de diseño completo
+        │   │   ├── styles.css               # Sistema de diseño completo
+        │   │   └── Layout_Externo.css       # Estilos para login/registro
         │   ├── js/
-        │   │   ├── menu.js                  # Sidebar toggle + submenús
+        │   │   ├── Menu.js                  # Sidebar toggle + submenús
         │   │   └── funciones.js
         │   └── lib/                         # Bootstrap, jQuery, validaciones
         │
-        ├── appsettings.json
-        ├── appsettings.Development.json     # Conexión local (no commitear)
+        ├── appsettings.json                 # Configuración base (sin credenciales)
         └── Program.cs
 ```
 
@@ -341,16 +367,16 @@ ProyectoDeGraduacion_Demo/
 
 ## Variables de Entorno
 
-Configuradas en `appsettings.json` y sobreescritas en `appsettings.Development.json`:
-
 | Clave | Descripción |
 |---|---|
-| `ConnectionStrings:DefaultConnection` | Cadena de conexión a SQL Server |
-| `settings:SecretKey` | Clave AES-256 para cifrado de contraseñas (32 caracteres) |
-| `settings:correoSMTP` | Correo origen para envío de recuperación de cuenta |
-| `settings:claveSMTP` | Contraseña del correo SMTP |
+| `ConnectionStrings__DefaultConnection` | Cadena de conexión PostgreSQL (formato Npgsql) |
+| `settings__SecretKey` | Clave AES-256 para cifrado de contraseñas (32 caracteres) |
+| `settings__correoSMTP` | Correo origen para envío de recuperación de cuenta |
+| `settings__claveSMTP` | Contraseña del correo SMTP |
 
-> `appsettings.Development.json` no debe commitearse a repositorios públicos ya que puede contener credenciales locales. Asegúrate de que esté en `.gitignore`.
+> En ASP.NET Core, el separador `__` en variables de entorno equivale a `:` en `appsettings.json`. Así `settings__SecretKey` mapea a `settings:SecretKey`.
+
+> `appsettings.Development.json` está en `.gitignore` y nunca se commitea — contiene credenciales locales.
 
 ---
 
@@ -364,6 +390,9 @@ El proyecto es un demo académico de alcance acotado. Los controladores acceden 
 
 **¿Por qué acceso anónimo en las vistas de consulta?**
 El objetivo del demo es que reclutadores y visitantes puedan explorar el sistema sin necesidad de credenciales. Las acciones de escritura siguen protegidas con `[Authorize]`.
+
+**¿Por qué PostgreSQL en lugar de SQL Server?**
+El proyecto originalmente usaba SQL Server (Azure SQL). Para el demo de portafolio se migró a PostgreSQL por compatibilidad con plataformas de hosting gratuitas (Railway, Render) que no ofrecen SQL Server en tier gratuito.
 
 ---
 
