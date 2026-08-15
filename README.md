@@ -122,7 +122,7 @@ Las migraciones se aplican automáticamente al arrancar la aplicación mediante 
 | Agregar tareas | `POST /Proyecto/AgregarTareasModal` | Requerida |
 | Actualizar estado tareas | `POST /Proyecto/ActualizarTareas` | Requerida |
 | Crear hito | `POST /Proyecto/AsignarHito` | Requerida |
-| Cambiar estado hito | `POST /Proyecto/ActualizarEstadoHito` | Requerida |
+| Editar hito (descripción, responsable, estado, fecha) | `POST /Proyecto/EditarHito` | Requerida |
 | Eliminar hito | `POST /Proyecto/EliminarHito` | Requerida |
 
 **Jerarquía de datos:**
@@ -143,16 +143,16 @@ Proyecto
 ```
 
 ### Inventario (`/Inventario`)
-CRUD completo de productos. El campo `PrecioTotal` es calculado (`Cantidad × PrecioUnidad`). El campo `Stock` es una propiedad calculada en el modelo (`Cantidad > 0`). Acceso de lectura público.
+CRUD completo de productos. El campo `PrecioTotal` es calculado (`Cantidad × PrecioUnidad`). El campo `Stock` es una propiedad calculada en el modelo (`Cantidad > 0`). Exportación a HTML y CSV. Acceso de lectura público.
 
 ### Proveedores (`/Proveedores`)
-Directorio de empresas proveedoras. Estado booleano (`Activo`). Toggle de estado sin eliminación física.
+Directorio de empresas proveedoras. Estado booleano (`Activo`). Toggle de estado sin eliminación física. Exportación a HTML y CSV (codificación UTF-8 con BOM y campos escapados para compatibilidad con Excel).
 
 ### Empleados (`/Empleado`)
 Registro simple: nombre, apellido, correo. Se usan como responsables de hitos en proyectos.
 
 ### Facturas (`/Facturas`)
-Registro de facturas con número, proveedor, monto, impuestos y estado. Incluye módulo de Cierres Financieros anuales y mensuales (accesibles por URL, no visibles en el menú lateral).
+CRUD completo: registrar, editar y eliminar facturas por proveedor, con numeración correlativa por año y cálculo automático de impuestos (16%). Exportación a HTML. Incluye módulo de Cierres Financieros anuales y mensuales (accesibles por URL, no visibles en el menú lateral).
 
 ### Usuarios (`/Administrativo`)
 Solo accesible para el rol **Administrador**.
@@ -217,32 +217,38 @@ CierreFinanciero { Id, ... }
 
 ## Despliegue
 
-La aplicación está contenerizada con Docker y desplegada en **Railway** con **Railway PostgreSQL**.
+La aplicación está contenerizada con Docker y desplegada en **Render** (Web Service, tier gratuito) con **Supabase PostgreSQL** como base de datos.
 
 ### Infraestructura
 | Componente | Servicio |
 |---|---|
-| Aplicación | Railway Web Service (Docker) |
-| Base de datos | Railway PostgreSQL |
+| Aplicación | Render Web Service (Docker, free tier) |
+| Base de datos | Supabase PostgreSQL (free tier) |
+| Mantenimiento de BD | GitHub Actions (`supabase-keep-alive.yml`) |
+
+> El free tier de Render "duerme" el servicio tras 15 minutos sin tráfico (la primera visita tras eso tarda ~30-50s en responder). El free tier de Supabase pausa el proyecto tras 7 días sin actividad — por eso existe el workflow de mantenimiento (ver más abajo).
 
 ### Dockerfile
 La imagen usa un build multi-stage:
 1. **Build stage** (`mcr.microsoft.com/dotnet/sdk:8.0`): compila y publica la app
 2. **Runtime stage** (`mcr.microsoft.com/dotnet/aspnet:8.0`): imagen final ligera
 
-La app corre en el puerto `8080` con `ASPNETCORE_URLS=http://+:8080`.
+La app corre en el puerto indicado por la variable `PORT` que inyecta Render (`ASPNETCORE_URLS=http://+:8080` en el Dockerfile, con `PORT=8080` configurado en Render).
 
 ### Migraciones automáticas
 Al arrancar, `Program.cs` ejecuta `db.Database.Migrate()` que aplica cualquier migración pendiente. No se requiere intervención manual al desplegar.
 
-### Variables requeridas en Railway
+### Variables requeridas en Render
 | Variable | Descripción |
 |---|---|
-| `ConnectionStrings__DefaultConnection` | Cadena de conexión PostgreSQL interna de Railway |
+| `PORT` | Puerto en el que Render enruta el tráfico hacia el contenedor (`8080`) |
+| `ConnectionStrings__DefaultConnection` | Cadena de conexión al *connection pooler* de Supabase (modo *session*, puerto 5432) |
 | `settings__SecretKey` | Clave AES-256 de 32 caracteres para cifrado de contraseñas |
-| `settings__correoSMTP` | Correo origen para recuperación de cuenta |
-| `settings__claveSMTP` | Contraseña del correo SMTP |
-| `ASPNETCORE_ENVIRONMENT` | `Production` |
+
+> La recuperación de cuenta por correo (`settings__correoSMTP` / `settings__claveSMTP`) no está activa en el demo desplegado — esas variables se dejan vacías y esa funcionalidad queda deshabilitada en producción.
+
+### Mantenimiento automático de la base de datos
+El workflow [`.github/workflows/supabase-keep-alive.yml`](.github/workflows/supabase-keep-alive.yml) corre cada 5 días vía GitHub Actions (`schedule` + `workflow_dispatch` para ejecutarlo manualmente) y hace una lectura mínima a la API REST de Supabase, sin modificar datos, solo para mantener el proyecto activo. Requiere los secrets de repositorio `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
 
 ---
 
@@ -264,14 +270,14 @@ cd ProyectoDeGraduacion_Demo
 
 **2. Configurar la conexión a la base de datos**
 
-Crea el archivo `ProyectoSGIO/ProyectoSGIOCore/appsettings.Development.json` (no se commitea):
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=sgio_dev;Username=postgres;Password=tu_password"
-  }
-}
+El proyecto usa [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) para las credenciales locales (no se commitean, se guardan fuera del repositorio):
+```bash
+cd ProyectoSGIO/ProyectoSGIOCore
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=sgio_dev;Username=postgres;Password=tu_password"
+dotnet user-secrets set "settings:SecretKey" "una_clave_de_32_caracteres_aqui"
 ```
+
+`appsettings.Development.json` y `appsettings.json` se mantienen en el repo con los valores de conexión y clave **vacíos** a propósito — en desarrollo se completan vía user secrets, y en producción vía variables de entorno (ver [Despliegue](#despliegue)).
 
 **3. Ejecutar el proyecto**
 ```bash
@@ -392,7 +398,10 @@ El proyecto es un demo académico de alcance acotado. Los controladores acceden 
 El objetivo del demo es que reclutadores y visitantes puedan explorar el sistema sin necesidad de credenciales. Las acciones de escritura siguen protegidas con `[Authorize]`.
 
 **¿Por qué PostgreSQL en lugar de SQL Server?**
-El proyecto originalmente usaba SQL Server (Azure SQL). Para el demo de portafolio se migró a PostgreSQL por compatibilidad con plataformas de hosting gratuitas (Railway, Render) que no ofrecen SQL Server en tier gratuito.
+El proyecto originalmente usaba SQL Server (Azure SQL). Para el demo de portafolio se migró a PostgreSQL por compatibilidad con plataformas de hosting gratuitas (Render, Supabase) que no ofrecen SQL Server en tier gratuito.
+
+**¿Por qué Render + Supabase y no un solo proveedor?**
+Se probó Railway primero, pero su tier gratuito resultó demasiado limitado para mantener el demo activo. Render (hosting) + Supabase (base de datos) es la combinación gratuita más simple de configurar sin tarjeta de crédito, a cambio de aceptar que ambos servicios "duerman" por inactividad — mitigado con el workflow de mantenimiento automático.
 
 ---
 
