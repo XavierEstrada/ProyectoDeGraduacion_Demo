@@ -510,18 +510,6 @@ else
                 <input type="hidden" name="id" value="@Model.Id" />
                 <input type="hidden" name="usuarioId" id="clienteSeleccionadoId" />
                 <div class="modal-body">
-                    <!-- Barra de búsqueda -->
-                    <div class="mb-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0">
-                                <i class="bi bi-search text-muted"></i>
-                            </span>
-                            <input type="text" id="buscarCliente"
-                                   class="form-control border-start-0 ps-0"
-                                   placeholder="Buscar por nombre, apellido o correo…"
-                                   autocomplete="off" />
-                        </div>
-                    </div>
                     <!-- Lista de clientes -->
                     <div id="listaClientes"
                          style="max-height:340px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;">
@@ -719,27 +707,9 @@ document.querySelectorAll('.editar-estado-hito-btn').forEach(btn => {
     const infoBox       = document.getElementById('clienteSeleccionadoInfo');
     const sinSeleccion  = document.getElementById('sinClienteSeleccionado');
     const btnAsignar    = document.getElementById('btnAsignarCliente');
-    const searchInput   = document.getElementById('buscarCliente');
-    const modalEl       = document.getElementById('modalAsignarCliente');
 
     function getItems() {
         return document.querySelectorAll('.cliente-item');
-    }
-
-    function filtrar(q) {
-        q = (q || '').toLowerCase().trim();
-        getItems().forEach(function(item) {
-            const nombre = (item.dataset.nombre || '').toLowerCase();
-            const correo = (item.dataset.correo || '').toLowerCase();
-            const coincide = !q || nombre.includes(q) || correo.includes(q);
-            item.style.display = coincide ? 'flex' : 'none';
-        });
-    }
-
-    // Búsqueda en tiempo real — escucha input Y keyup para máxima compatibilidad
-    if (searchInput) {
-        searchInput.addEventListener('input', function() { filtrar(this.value); });
-        searchInput.addEventListener('keyup',  function() { filtrar(this.value); });
     }
 
     // Selección de cliente (delegación al contenedor para capturar items al momento)
@@ -774,17 +744,6 @@ document.querySelectorAll('.editar-estado-hito-btn').forEach(btn => {
         lista.addEventListener('mouseout', function(e) {
             const item = e.target.closest('.cliente-item');
             if (item && hiddenId && item.dataset.id !== hiddenId.value) item.style.background = '';
-        });
-    }
-
-    // Al abrir el modal: limpiar búsqueda y mostrar todos los items
-    if (modalEl) {
-        modalEl.addEventListener('shown.bs.modal', function() {
-            if (searchInput) {
-                searchInput.value = '';
-                searchInput.focus();
-            }
-            getItems().forEach(function(i) { i.style.display = 'flex'; });
         });
     }
 })();

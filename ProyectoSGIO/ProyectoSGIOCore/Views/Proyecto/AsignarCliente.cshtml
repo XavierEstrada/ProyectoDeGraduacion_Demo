@@ -1,4 +1,5 @@
-﻿@model ProyectoSGIOCore.Models.Proyecto
+@model ProyectoSGIOCore.Models.Proyecto
+@using Microsoft.AspNetCore.Mvc.Rendering
 @{
     ViewData["Title"] = "Asignar Cliente";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -20,11 +21,80 @@
 
     <div class="mb-3">
         <label class="form-label">Usuario</label>
-        <select name="usuarioId" asp-items="ViewBag.Usuarios" class="form-select">
-            <option value="">Seleccione un usuario</option>
-        </select>
+        <div class="cliente-picker position-relative">
+            <input type="text" id="clienteSearch" class="form-control" placeholder="Seleccione un usuario" autocomplete="off" />
+            <input type="hidden" name="usuarioId" id="usuarioIdInput" value="0" />
+            <div id="clienteList" class="list-group position-absolute w-100 shadow-sm d-none" style="max-height: 250px; overflow-y: auto; z-index: 1000;">
+                @foreach (SelectListItem item in (SelectList)ViewBag.Usuarios)
+                {
+                    <button type="button" class="list-group-item list-group-item-action cliente-item" data-id="@item.Value">@item.Text</button>
+                }
+            </div>
+        </div>
         <span class="text-danger"></span>
     </div>
 
     <button type="submit" class="btn btn-success mt-3">Asignar Cliente</button>
 </form>
+
+@section scripts {
+    <script>
+        $(function () {
+            var $search = $('#clienteSearch');
+            var $hidden = $('#usuarioIdInput');
+            var $lista = $('#clienteList');
+            var $items = $('.cliente-item');
+
+            function abrir() {
+                $items.show();
+                $lista.removeClass('d-none');
+            }
+
+            function cerrar() {
+                $lista.addClass('d-none');
+            }
+
+            function seleccionar($item) {
+                $hidden.val($item.data('id'));
+                $search.val($item.text().trim());
+                $items.removeClass('active');
+                $item.addClass('active');
+                cerrar();
+            }
+
+            $search.on('focus', function () {
+                abrir();
+            });
+
+            $search.on('input', function () {
+                $hidden.val('0');
+                abrir();
+                var q = $(this).val().toLowerCase();
+                $items.each(function () {
+                    var coincide = $(this).text().toLowerCase().indexOf(q) !== -1;
+                    $(this).toggle(coincide).removeClass('active');
+                });
+            });
+
+            $search.on('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var $visible = $items.filter(':visible');
+                    if ($visible.length > 0) {
+                        seleccionar($visible.first());
+                    }
+                }
+            });
+
+            $items.on('click', function () {
+                seleccionar($(this));
+            });
+
+            $(document).on('click', function (e) {
+                if (!$(e.target).closest('.cliente-picker').length) {
+                    cerrar();
+                }
+            });
+        });
+    </script>
+}

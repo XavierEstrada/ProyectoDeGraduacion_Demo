@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sgio-local",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "ProyectoSGIO/ProyectoSGIOCore", "--launch-profile", "http"],
+      "port": 5261
+    }
+  ]
+}
