@@ -1,0 +1,25 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Corre cada 5 días a las 12:00 UTC. GitHub Actions solo garantiza
+    # cron con precisión de "hora del día", no de "cada N días" exacto,
+    # pero para este propósito (evitar la pausa a los 7 días) es de sobra.
+    - cron: "0 12 */5 * *"
+  workflow_dispatch: # permite correrlo manualmente desde la pestaña Actions
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lectura liviana a Supabase (SELECT, sin modificar datos)
+        run: |
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/Rol?select=IdRol&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Respuesta de Supabase: HTTP $http_code"
+          if [ "$http_code" -ge 400 ]; then
+            echo "::error::Supabase respondió con un error ($http_code)"
+            exit 1
+          fi

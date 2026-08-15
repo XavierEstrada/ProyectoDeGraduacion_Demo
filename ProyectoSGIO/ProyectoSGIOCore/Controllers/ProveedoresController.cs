@@ -134,11 +134,31 @@ namespace ProyectoSGIOCore.Controllers
 
             var html = new StringBuilder();
             html.AppendLine("<html>");
-            html.AppendLine("<head><meta charset='UTF-8'><title>Lista de Proveedores</title></head>");
+            html.AppendLine("<head>");
+            html.AppendLine("<meta charset='UTF-8'>");
+            html.AppendLine("<title>Reporte de Proveedores</title>");
+            html.AppendLine("<style>");
+            html.AppendLine("body { font-family: Arial, sans-serif; margin: 20px; }");
+            html.AppendLine("h1 { text-align: center; color: #333; }");
+            html.AppendLine("table { width: 100%; border-collapse: collapse; margin-top: 20px; }");
+            html.AppendLine("th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }");
+            html.AppendLine("th { background-color: #4CAF50; color: white; }");
+            html.AppendLine("tr:nth-child(even) { background-color: #f2f2f2; }");
+            html.AppendLine("</style>");
+            html.AppendLine("</head>");
             html.AppendLine("<body>");
-            html.AppendLine("<h1 style='text-align:center;'>Lista de Proveedores</h1>");
-            html.AppendLine("<table border='1' width='100%' style='border-collapse:collapse;'>");
-            html.AppendLine("<thead><tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Dirección</th><th>Estado</th></tr></thead>");
+            html.AppendLine("<h1>Reporte de Proveedores</h1>");
+            html.AppendLine("<table>");
+            html.AppendLine("<thead>");
+            html.AppendLine("<tr>");
+            html.AppendLine("<th>ID</th>");
+            html.AppendLine("<th>Nombre</th>");
+            html.AppendLine("<th>Correo</th>");
+            html.AppendLine("<th>Teléfono</th>");
+            html.AppendLine("<th>Dirección</th>");
+            html.AppendLine("<th>Estado</th>");
+            html.AppendLine("</tr>");
+            html.AppendLine("</thead>");
             html.AppendLine("<tbody>");
 
             foreach (var proveedor in proveedores)
@@ -153,12 +173,24 @@ namespace ProyectoSGIOCore.Controllers
                 html.AppendLine("</tr>");
             }
 
-            html.AppendLine("</tbody></table>");
-            html.AppendLine("</body></html>");
+            html.AppendLine("</tbody>");
+            html.AppendLine("</table>");
+            html.AppendLine("</body>");
+            html.AppendLine("</html>");
 
             var bytes = Encoding.UTF8.GetBytes(html.ToString());
 
             return File(bytes, "text/html", "Proveedores.html");
+        }
+
+        private static string EscaparCampoCsv(string valor)
+        {
+            valor ??= string.Empty;
+            if (valor.Contains(',') || valor.Contains('"') || valor.Contains('\n'))
+            {
+                return "\"" + valor.Replace("\"", "\"\"") + "\"";
+            }
+            return valor;
         }
 
         public IActionResult DescargarProveedoresCSV()
@@ -167,14 +199,24 @@ namespace ProyectoSGIOCore.Controllers
 
             using (var stream = new MemoryStream())
             {
-                using (var writer = new StreamWriter(stream))
+                // UTF8Encoding(true) agrega el BOM para que Excel detecte la codificación correctamente
+                using (var writer = new StreamWriter(stream, new UTF8Encoding(true)))
                 {
                     writer.WriteLine("ID,Nombre,Correo,Teléfono,Dirección,Estado");
 
                     foreach (var proveedor in proveedores)
                     {
                         string estado = proveedor.Estado ? "Activo" : "Inactivo";
-                        writer.WriteLine($"{proveedor.IdProveedor},{proveedor.Nombre},{proveedor.Correo},{proveedor.Telefono},{proveedor.Direccion},{estado}");
+                        var campos = new[]
+                        {
+                            proveedor.IdProveedor.ToString(),
+                            EscaparCampoCsv(proveedor.Nombre),
+                            EscaparCampoCsv(proveedor.Correo),
+                            EscaparCampoCsv(proveedor.Telefono),
+                            EscaparCampoCsv(proveedor.Direccion),
+                            estado
+                        };
+                        writer.WriteLine(string.Join(",", campos));
                     }
 
                     writer.Flush();

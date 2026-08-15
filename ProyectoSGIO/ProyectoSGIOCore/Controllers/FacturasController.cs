@@ -116,7 +116,15 @@ namespace ProyectoSGIOCore.Controllers
                 return RedirectToAction("VisualizarFacturas");
             }
 
+            var proveedor = await _dbContext.Proveedores.FindAsync(entidad.IdProveedor);
+            if (proveedor == null)
+            {
+                TempData["MensajeError"] = "El proveedor seleccionado no existe.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+
             factura.IdProveedor = entidad.IdProveedor;
+            factura.Proveedor = proveedor;
             factura.FechaEmision = entidad.FechaEmision;
             factura.MontoTotal = entidad.MontoTotal;
             factura.Descripcion = entidad.Descripcion;

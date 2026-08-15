@@ -317,12 +317,15 @@ else
                         {
                             <td class="text-center">
                                 <div class="d-flex gap-1 justify-content-center">
-                                    <button type="button" class="btn btn-action edit editar-estado-hito-btn"
-                                            title="Cambiar estado"
+                                    <button type="button" class="btn btn-action edit editar-hito-btn"
+                                            title="Editar hito"
                                             data-hito-id="@hito.ID"
+                                            data-descripcion="@hito.Descripcion"
+                                            data-usuario-id="@hito.IdUsuario"
                                             data-estado-actual="@hito.estado"
+                                            data-fecha="@hito.Fecha.ToString("yyyy-MM-dd")"
                                             data-bs-toggle="modal"
-                                            data-bs-target="#modalEditarEstadoHito">
+                                            data-bs-target="#modalEditarHito">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button type="button" class="btn btn-action delete"
@@ -572,29 +575,47 @@ else
     </div>
 </div>
 
-<!-- ====== MODAL: Editar Estado Hito ====== -->
-<div class="modal fade" id="modalEditarEstadoHito" tabindex="-1" aria-hidden="true">
+<!-- ====== MODAL: Editar Hito ====== -->
+<div class="modal fade" id="modalEditarHito" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Cambiar Estado del Hito</h5>
+                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Editar Hito</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form asp-action="ActualizarEstadoHito" asp-controller="Proyecto" method="post">
+            <form asp-action="EditarHito" asp-controller="Proyecto" method="post">
                 <input type="hidden" name="hitoId" id="editarHitoId" />
                 <div class="modal-body">
-                    <label class="form-label">Nuevo Estado <span class="text-danger">*</span></label>
-                    <select name="estadoId" id="editarEstadoSelect" class="form-select" required>
-                        <option value="1">Completo</option>
-                        <option value="2">Pendiente</option>
-                        <option value="3">En Progreso</option>
-                        <option value="4">Aprobado</option>
-                        <option value="5">Rechazado</option>
-                    </select>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                        <textarea name="Descripcion" id="editarHitoDescripcion" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Responsable <span class="text-danger">*</span></label>
+                        <select name="usuarioId" id="editarHitoUsuario" asp-items="ViewBag.Usuarios" class="form-select" required>
+                            <option value="">Seleccione un empleado</option>
+                        </select>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Estado</label>
+                            <select name="estadoId" id="editarEstadoSelect" class="form-select">
+                                <option value="1">Completo</option>
+                                <option value="2">Pendiente</option>
+                                <option value="3">En Progreso</option>
+                                <option value="4">Aprobado</option>
+                                <option value="5">Rechazado</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Fecha</label>
+                            <input type="date" name="Fecha" id="editarHitoFecha" class="form-control" required />
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar Estado</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </form>
         </div>
@@ -692,11 +713,14 @@ document.querySelectorAll('.eliminar-tarea-btn').forEach(btn => {
     });
 });
 
-// ---- Editar estado de hito ----
-document.querySelectorAll('.editar-estado-hito-btn').forEach(btn => {
+// ---- Editar hito ----
+document.querySelectorAll('.editar-hito-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         document.getElementById('editarHitoId').value = this.dataset.hitoId;
+        document.getElementById('editarHitoDescripcion').value = this.dataset.descripcion;
+        document.getElementById('editarHitoUsuario').value = this.dataset.usuarioId;
         document.getElementById('editarEstadoSelect').value = this.dataset.estadoActual;
+        document.getElementById('editarHitoFecha').value = this.dataset.fecha;
     });
 });
 

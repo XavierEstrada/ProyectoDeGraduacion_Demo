@@ -668,7 +668,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ActualizarEstadoHito(int hitoId, int estadoId)
+        public async Task<IActionResult> EditarHito(int hitoId, int usuarioId, int estadoId, string Descripcion, DateTime Fecha)
         {
             var hito = await _dbContext.Hitos.FindAsync(hitoId);
             if (hito == null)
@@ -677,10 +677,19 @@ namespace ProyectoSGIOCore.Controllers
                 return RedirectToAction("Proyectos");
             }
 
+            if (usuarioId == 0)
+            {
+                TempData["MensajeError"] = "Debe seleccionar un responsable para el hito.";
+                return RedirectToAction("GestionarProyecto", new { id = hito.ProyectoId });
+            }
+
+            hito.Descripcion = Descripcion;
+            hito.IdUsuario = usuarioId;
             hito.estado = estadoId;
+            hito.Fecha = Fecha;
             await _dbContext.SaveChangesAsync();
 
-            TempData["MensajeExito"] = "Estado del hito actualizado correctamente.";
+            TempData["MensajeExito"] = "Hito actualizado correctamente.";
             return RedirectToAction("GestionarProyecto", new { id = hito.ProyectoId });
         }
 
