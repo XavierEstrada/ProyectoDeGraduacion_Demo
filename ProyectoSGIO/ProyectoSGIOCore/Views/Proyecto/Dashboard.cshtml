@@ -22,9 +22,12 @@
         <p class="page-subtitle">Dashboard · Creado el @Model.FechaCreacion.ToString("dd/MM/yyyy")</p>
     </div>
     <div class="d-flex gap-2">
-        <a asp-action="GestionarProyecto" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-gear me-1"></i>Gestionar
-        </a>
+        @if (!User.IsInRole("Usuario"))
+        {
+            <a asp-action="GestionarProyecto" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-gear me-1"></i>Gestionar
+            </a>
+        }
         <a asp-action="Proyectos" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Volver
         </a>
@@ -95,10 +98,10 @@
     <p class="text-muted mb-0 mt-2" style="font-size:13px;">@tareasOk de @totalTareas tareas completadas</p>
 </div>
 
-<!-- Charts + Progress Bars -->
+<!-- Charts -->
 <div class="row g-4 mb-4">
     <!-- Gráfico Hitos -->
-    <div class="col-12 col-lg-4">
+    <div class="col-12 col-lg-6">
         <div class="table-card p-4 h-100">
             <h6 class="mb-3 fw-600" style="font-size:13px;">Hitos por Estado</h6>
             <div style="position:relative;height:220px;">
@@ -107,7 +110,7 @@
         </div>
     </div>
     <!-- Gráfico Tareas -->
-    <div class="col-12 col-lg-4">
+    <div class="col-12 col-lg-6">
         <div class="table-card p-4 h-100">
             <h6 class="mb-3 fw-600" style="font-size:13px;">Tareas por Estado</h6>
             <div style="position:relative;height:220px;">
@@ -115,11 +118,28 @@
             </div>
         </div>
     </div>
-    <!-- Progreso por fase -->
-    <div class="col-12 col-lg-4">
-        <div class="table-card p-4 h-100">
-            <h6 class="mb-3 fw-600" style="font-size:13px;">Progreso por Fase</h6>
-            <div id="faseProgressBars"></div>
+</div>
+
+<!-- Costo por fase -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="table-card p-4">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Costo por Fase</h6>
+            <div style="position:relative;height:@(Math.Max(160, Model.Fases.Count * 46))px;">
+                <canvas id="costoFaseChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cronograma por fase -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="table-card p-4">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Cronograma por Fase</h6>
+            <div style="position:relative;height:@(Math.Max(120, Model.Fases.Count * 42))px;">
+                <canvas id="ganttChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -129,6 +149,7 @@
     <div class="p-4 border-bottom">
         <h6 class="mb-0 fw-600" style="font-size:13px;">Detalle de Fases</h6>
     </div>
+    <div class="table-responsive">
     <table class="sgio-table mb-0">
         <thead>
             <tr>
@@ -163,6 +184,7 @@
             }
         </tbody>
     </table>
+    </div>
 </div>
 
 @section Scripts {
@@ -181,7 +203,30 @@
     };
     const colors = [palette.blue, palette.green, palette.amber, palette.red, palette.purple];
 
-    function makeDonut(ctx, labels, counts, colorSet) {
+    // Plugin: texto centrado en las dosas (total + subtítulo)
+    const centerTextPlugin = {
+        id: 'centerText',
+        afterDraw(chart) {
+            const opts = chart.config.options.plugins.centerText;
+            if (!opts) return;
+            const { ctx, chartArea: { left, right, top, bottom } } = chart;
+            const x = (left + right) / 2;
+            const y = (top + bottom) / 2;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#1e293b';
+            ctx.font = '700 22px Poppins, Arial, sans-serif';
+            ctx.fillText(opts.total, x, y - 10);
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 11px Poppins, Arial, sans-serif';
+            ctx.fillText(opts.subtitle, x, y + 12);
+            ctx.restore();
+        }
+    };
+
+    function makeDonut(ctx, labels, counts, colorSet, subtitle) {
+        const total = counts.reduce((a, b) => a + b, 0);
         return new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -190,16 +235,29 @@
                     data: counts,
                     backgroundColor: colorSet.map(c => c.bg),
                     borderColor: colorSet.map(c => c.border),
-                    borderWidth: 2
+                    borderWidth: 2,
+                    hoverOffset: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '68%',
+                animation: { animateRotate: true, duration: 700 },
                 plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } }
+                    legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true } },
+                    tooltip: {
+                        callbacks: {
+                            label(item) {
+                                const pct = total ? Math.round((item.parsed / total) * 100) : 0;
+                                return ` ${item.label}: ${item.parsed} (${pct}%)`;
+                            }
+                        }
+                    },
+                    centerText: { total, subtitle }
                 }
-            }
+            },
+            plugins: [centerTextPlugin]
         });
     }
 
@@ -209,38 +267,127 @@
             document.getElementById('hitoChart').getContext('2d'),
             hitoData.map(d => d.Nombre || 'Sin estado'),
             hitoData.map(d => d.Count),
-            hitoData.map((_, i) => colors[i % colors.length])
+            hitoData.map((_, i) => colors[i % colors.length]),
+            'hitos'
         );
     }
 
-    // Tareas chart
+    // Tareas chart (Pendiente / En Progreso / Completada)
+    function colorParaEstadoTarea(nombre) {
+        if (nombre === 'Completada') return palette.green;
+        if (nombre === 'En Progreso') return palette.blue;
+        return palette.amber;
+    }
+
     if (tareaData.length) {
         makeDonut(
             document.getElementById('tareaChart').getContext('2d'),
             tareaData.map(d => d.Nombre),
             tareaData.map(d => d.Count),
-            tareaData.map(d => d.Completada ? palette.green : palette.red)
+            tareaData.map(d => colorParaEstadoTarea(d.Nombre)),
+            'tareas'
         );
     }
 
-    // Fase progress bars
-    const faseContainer = document.getElementById('faseProgressBars');
-    if (faseData.length === 0) {
-        faseContainer.innerHTML = '<p class="text-muted" style="font-size:13px;">Sin fases registradas.</p>';
-    } else {
-        faseData.forEach(f => {
-            const pct = f.PorcentajeCompletadas;
-            const bar = document.createElement('div');
-            bar.className = 'mb-3';
-            bar.innerHTML = `
-                <div class="d-flex justify-content-between mb-1">
-                    <span style="font-size:13px;font-weight:500;">${f.Nombre}</span>
-                    <span style="font-size:12px;color:#64748b;">${pct}%</span>
-                </div>
-                <div class="progress" style="height:7px;border-radius:4px;">
-                    <div class="progress-bar ${pct === 100 ? 'bg-success' : 'bg-primary'}" style="width:${pct}%;border-radius:4px;"></div>
-                </div>`;
-            faseContainer.appendChild(bar);
+    // Costo por fase (barras horizontales)
+    if (faseData.length) {
+        new Chart(document.getElementById('costoFaseChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: faseData.map(f => f.Nombre),
+                datasets: [{
+                    data: faseData.map(f => f.CostoTotal),
+                    backgroundColor: faseData.map((_, i) => colors[i % colors.length].bg),
+                    borderColor: faseData.map((_, i) => colors[i % colors.length].border),
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    maxBarThickness: 28
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 700 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label(item) {
+                                return ' $' + item.parsed.x.toLocaleString('en-US', { minimumFractionDigits: 2 });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            callback: v => '$' + Number(v).toLocaleString('en-US')
+                        },
+                        grid: { color: 'rgba(0,0,0,.05)' }
+                    },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Cronograma por fase (Gantt con barras flotantes)
+    // Nota: se usa una escala 'linear' con el rango calculado desde los datos reales
+    // (no 'time') porque Chart.js no parsea bien pares [inicio, fin] en una escala de tiempo
+    // dentro de un bar chart de índice invertido — terminaba mostrando 1970 (época Unix) como origen.
+    const ganttFases = faseData.filter(f => f.FechaInicio && f.FechaFin);
+    if (ganttFases.length) {
+        const DIA_MS = 24 * 60 * 60 * 1000;
+        const inicios = ganttFases.map(f => new Date(f.FechaInicio).getTime());
+        const fines = ganttFases.map(f => new Date(f.FechaFin).getTime());
+        const minFecha = Math.min(...inicios) - (7 * DIA_MS);
+        const maxFecha = Math.max(...fines) + (7 * DIA_MS);
+
+        new Chart(document.getElementById('ganttChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ganttFases.map(f => f.Nombre),
+                datasets: [{
+                    data: ganttFases.map(f => [new Date(f.FechaInicio).getTime(), new Date(f.FechaFin).getTime()]),
+                    backgroundColor: ganttFases.map((f, i) => f.PorcentajeCompletadas === 100 ? palette.green.bg : colors[i % colors.length].bg),
+                    borderColor: ganttFases.map((f, i) => f.PorcentajeCompletadas === 100 ? palette.green.border : colors[i % colors.length].border),
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    barThickness: 22
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 700 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label(item) {
+                                const f = ganttFases[item.dataIndex];
+                                const ini = new Date(f.FechaInicio).toLocaleDateString('es-CR');
+                                const fin = new Date(f.FechaFin).toLocaleDateString('es-CR');
+                                return ` ${ini} → ${fin}  ·  ${f.PorcentajeCompletadas}% completado`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: minFecha,
+                        max: maxFecha,
+                        ticks: {
+                            callback: v => new Date(v).toLocaleDateString('es-CR', { month: 'short', year: 'numeric' })
+                        },
+                        grid: { color: 'rgba(0,0,0,.05)' }
+                    },
+                    y: { grid: { display: false } }
+                }
+            }
         });
     }
 </script>

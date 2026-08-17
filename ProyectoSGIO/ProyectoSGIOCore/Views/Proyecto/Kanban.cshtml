@@ -1,0 +1,197 @@
+@model ProyectoSGIOCore.Models.Proyecto
+@{
+    ViewBag.Title = "Kanban — " + Model.Nombre;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var tareas = Model.Fases.SelectMany(f => f.Tareas.Select(t => new { Tarea = t, Fase = f.Nombre })).ToList();
+    var pendientes = tareas.Where(x => !x.Tarea.Completada && !x.Tarea.EnProgreso).ToList();
+    var enProgreso = tareas.Where(x => !x.Tarea.Completada && x.Tarea.EnProgreso).ToList();
+    var completadas = tareas.Where(x => x.Tarea.Completada).ToList();
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-left">
+        <h1 class="page-header-title"><i class="bi bi-kanban me-2 text-primary"></i>@Model.Nombre</h1>
+        <p class="page-header-subtitle">Tablero Kanban · arrastra las tarjetas entre columnas para cambiar su estado</p>
+    </div>
+    <div class="page-header-actions">
+        <a asp-action="GestionarProyecto" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+            <i class="bi bi-table me-1"></i> Vista de tabla
+        </a>
+        <a asp-action="Dashboard" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+            <i class="bi bi-graph-up me-1"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+@if (!tareas.Any())
+{
+    <div class="table-card p-5 text-center text-muted">
+        <i class="bi bi-kanban" style="font-size:2.5rem;opacity:.25;"></i>
+        <p class="mb-0 mt-3">Este proyecto todavía no tiene tareas registradas.</p>
+    </div>
+}
+else
+{
+    <div class="kanban-board">
+        <div class="kanban-column" data-columna="pendiente">
+            <div class="kanban-column-header">
+                <span><i class="bi bi-circle text-muted me-1"></i>Pendiente</span>
+                <span class="kanban-count" id="count-pendiente">@pendientes.Count</span>
+            </div>
+            <div class="kanban-dropzone" id="col-pendiente">
+                @foreach (var x in pendientes)
+                {
+                    @await Html.PartialAsync("_KanbanCard", x.Tarea, new ViewDataDictionary(ViewData) { { "Fase", x.Fase } })
+                }
+            </div>
+        </div>
+
+        <div class="kanban-column" data-columna="progreso">
+            <div class="kanban-column-header">
+                <span><i class="bi bi-arrow-repeat text-primary me-1"></i>En Progreso</span>
+                <span class="kanban-count" id="count-progreso">@enProgreso.Count</span>
+            </div>
+            <div class="kanban-dropzone" id="col-progreso">
+                @foreach (var x in enProgreso)
+                {
+                    @await Html.PartialAsync("_KanbanCard", x.Tarea, new ViewDataDictionary(ViewData) { { "Fase", x.Fase } })
+                }
+            </div>
+        </div>
+
+        <div class="kanban-column" data-columna="completada">
+            <div class="kanban-column-header">
+                <span><i class="bi bi-check-circle text-success me-1"></i>Completada</span>
+                <span class="kanban-count" id="count-completada">@completadas.Count</span>
+            </div>
+            <div class="kanban-dropzone" id="col-completada">
+                @foreach (var x in completadas)
+                {
+                    @await Html.PartialAsync("_KanbanCard", x.Tarea, new ViewDataDictionary(ViewData) { { "Fase", x.Fase } })
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .kanban-board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        align-items: start;
+    }
+    @@media (max-width: 900px) {
+        .kanban-board { grid-template-columns: 1fr; }
+    }
+    .kanban-column {
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        min-height: 200px;
+    }
+    .kanban-column-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .kanban-count {
+        background: #e2e8f0;
+        color: #475569;
+        border-radius: 999px;
+        padding: 1px 9px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .kanban-dropzone {
+        padding: 10px;
+        flex-grow: 1;
+        min-height: 120px;
+        transition: background .15s;
+    }
+    .kanban-dropzone.drag-over {
+        background: rgba(62,100,255,.08);
+        border-radius: 8px;
+    }
+    .kanban-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        cursor: grab;
+        box-shadow: 0 1px 2px rgba(0,0,0,.04);
+        transition: box-shadow .15s, transform .1s;
+    }
+    .kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .kanban-card.dragging { opacity: .4; }
+    .kanban-card-title { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
+    .kanban-card-fase { font-size: 11px; color: #64748b; margin-bottom: 6px; }
+    .kanban-card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; }
+</style>
+
+@section Scripts {
+    <script>
+        (function () {
+            let dragged = null;
+
+            document.querySelectorAll('.kanban-card').forEach(card => {
+                card.addEventListener('dragstart', function () {
+                    dragged = card;
+                    card.classList.add('dragging');
+                });
+                card.addEventListener('dragend', function () {
+                    card.classList.remove('dragging');
+                    dragged = null;
+                });
+            });
+
+            document.querySelectorAll('.kanban-dropzone').forEach(zone => {
+                zone.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+                zone.addEventListener('dragleave', function () {
+                    zone.classList.remove('drag-over');
+                });
+                zone.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    zone.classList.remove('drag-over');
+                    if (!dragged) return;
+
+                    const origenId = dragged.closest('.kanban-dropzone').id;
+                    if (origenId === zone.id) return;
+
+                    const columna = zone.closest('.kanban-column').dataset.columna;
+                    const tareaId = dragged.dataset.tareaId;
+
+                    zone.appendChild(dragged);
+                    actualizarContadores();
+
+                    fetch('@Url.Action("ActualizarColumnaKanban", "Proyecto")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `tareaId=${encodeURIComponent(tareaId)}&columna=${encodeURIComponent(columna)}`
+                    }).catch(() => {
+                        alert('No se pudo guardar el cambio. Recarga la página e intenta de nuevo.');
+                    });
+                });
+            });
+
+            function actualizarContadores() {
+                ['pendiente', 'progreso', 'completada'].forEach(c => {
+                    const zone = document.getElementById('col-' + c);
+                    document.getElementById('count-' + c).textContent = zone.children.length;
+                });
+            }
+        })();
+    </script>
+}

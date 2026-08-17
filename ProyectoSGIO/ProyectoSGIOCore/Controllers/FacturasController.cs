@@ -5,6 +5,7 @@ using ProyectoSGIOCore.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using ProyectoSGIOCore.Services;
 
 namespace ProyectoSGIOCore.Controllers
 {
@@ -12,10 +13,17 @@ namespace ProyectoSGIOCore.Controllers
     public class FacturasController : Controller
     {
         private readonly AppDBContext _dbContext;
+        private readonly ISupabaseStorageService _storageService;
+        private readonly IActividadService _actividadService;
+        private const string BucketAdjuntos = "adjuntos";
+        private static readonly string[] ExtensionesPermitidas = { ".pdf", ".png", ".jpg", ".jpeg", ".webp" };
+        private const long TamanoMaximoBytes = 10 * 1024 * 1024; // 10 MB
 
-        public FacturasController(AppDBContext context)
+        public FacturasController(AppDBContext context, ISupabaseStorageService storageService, IActividadService actividadService)
         {
             _dbContext = context;
+            _storageService = storageService;
+            _actividadService = actividadService;
         }
 
         [HttpGet]
@@ -64,6 +72,8 @@ namespace ProyectoSGIOCore.Controllers
                 _dbContext.Facturas.Add(factura);
                 await _dbContext.SaveChangesAsync();
 
+                await _actividadService.RegistrarAsync(User, "creó", "Factura", $"Factura '{factura.NumeroFactura}' de {proveedor.Nombre}");
+
                 return RedirectToAction("VisualizarFacturas");
             }
 
@@ -90,7 +100,97 @@ namespace ProyectoSGIOCore.Controllers
             ViewBag.TotalImpuestos = totalImpuestos;
             ViewBag.PromedioFactura = promedioFactura;
 
+            var facturaIds = facturas.Select(f => f.IdFactura).ToList();
+            ViewBag.Adjuntos = _dbContext.Adjuntos
+                .Where(a => a.EntidadTipo == "Factura" && facturaIds.Contains(a.EntidadId))
+                .OrderByDescending(a => a.FechaSubida)
+                .ToList();
+
             return View(facturas);
+        }
+
+        [HttpPost]
+        [RequestSizeLimit(TamanoMaximoBytes)]
+        public async Task<IActionResult> SubirAdjuntoFactura(int facturaId, IFormFile archivo)
+        {
+            var factura = await _dbContext.Facturas.FindAsync(facturaId);
+            if (factura == null)
+            {
+                TempData["MensajeError"] = "Factura no encontrada.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+
+            if (archivo == null || archivo.Length == 0)
+            {
+                TempData["MensajeError"] = "Selecciona un archivo para subir.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+
+            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+            if (!ExtensionesPermitidas.Contains(extension))
+            {
+                TempData["MensajeError"] = "Solo se permiten archivos PDF, PNG, JPG o WEBP.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+
+            if (archivo.Length > TamanoMaximoBytes)
+            {
+                TempData["MensajeError"] = "El archivo no puede superar los 10 MB.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+
+            using var ms = new MemoryStream();
+            await archivo.CopyToAsync(ms);
+            var path = $"facturas/{facturaId}/{Guid.NewGuid()}{extension}";
+
+            try
+            {
+                await _storageService.SubirArchivoAsync(BucketAdjuntos, path, ms.ToArray(), archivo.ContentType);
+
+                _dbContext.Adjuntos.Add(new Adjunto
+                {
+                    EntidadTipo = "Factura",
+                    EntidadId = facturaId,
+                    NombreArchivo = archivo.FileName,
+                    RutaStorage = path,
+                    UrlPublica = _storageService.ObtenerUrlPublica(BucketAdjuntos, path),
+                    FechaSubida = DateTime.UtcNow
+                });
+                await _dbContext.SaveChangesAsync();
+
+                TempData["MensajeExito"] = "Comprobante subido correctamente.";
+            }
+            catch (Exception)
+            {
+                TempData["MensajeError"] = "Ocurrió un error al subir el archivo. Intenta de nuevo.";
+            }
+
+            return RedirectToAction("VisualizarFacturas");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EliminarAdjuntoFactura(int id)
+        {
+            var adjunto = await _dbContext.Adjuntos.FindAsync(id);
+            if (adjunto == null)
+            {
+                TempData["MensajeError"] = "El adjunto no fue encontrado.";
+                return RedirectToAction("VisualizarFacturas");
+            }
+
+            try
+            {
+                await _storageService.EliminarArchivoAsync(BucketAdjuntos, adjunto.RutaStorage);
+                _dbContext.Adjuntos.Remove(adjunto);
+                await _dbContext.SaveChangesAsync();
+                TempData["MensajeExito"] = "Adjunto eliminado correctamente.";
+            }
+            catch (Exception)
+            {
+                TempData["MensajeError"] = "Ocurrió un error al eliminar el adjunto.";
+            }
+
+            return RedirectToAction("VisualizarFacturas");
         }
 
         [HttpGet]
@@ -130,6 +230,7 @@ namespace ProyectoSGIOCore.Controllers
             factura.Descripcion = entidad.Descripcion;
 
             await _dbContext.SaveChangesAsync();
+            await _actividadService.RegistrarAsync(User, "editó", "Factura", $"Factura '{factura.NumeroFactura}'");
             TempData["MensajeExito"] = $"Factura '{factura.NumeroFactura}' editada correctamente.";
             return RedirectToAction("VisualizarFacturas");
         }
@@ -146,6 +247,7 @@ namespace ProyectoSGIOCore.Controllers
 
             _dbContext.Facturas.Remove(factura);
             await _dbContext.SaveChangesAsync();
+            await _actividadService.RegistrarAsync(User, "eliminó", "Factura", $"Factura '{factura.NumeroFactura}'");
             TempData["MensajeExito"] = $"Factura '{factura.NumeroFactura}' eliminada correctamente.";
             return RedirectToAction("VisualizarFacturas");
         }

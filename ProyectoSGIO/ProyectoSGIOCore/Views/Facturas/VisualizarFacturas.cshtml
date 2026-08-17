@@ -1,4 +1,5 @@
 @model IEnumerable<ProyectoSGIOCore.Models.FacturaProveedor>
+@using ProyectoSGIOCore.Models
 @{
     ViewBag.Title = "Facturas";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -6,6 +7,7 @@
     decimal totalImpuesto = Model.Sum(f => f.MontoTotal * 0.16m);
     decimal promedio     = Model.Any() ? Model.Average(f => f.MontoTotal) : 0;
     int count = Model.Count();
+    var adjuntos = (List<Adjunto>)(ViewBag.Adjuntos ?? new List<Adjunto>());
 }
 
 @if (TempData["MensajeExito"] != null)
@@ -81,6 +83,7 @@
                     <th class="text-center">Monto Total</th>
                     <th class="text-center">Impuesto</th>
                     <th>Descripción</th>
+                    <th class="text-center">Adjuntos</th>
                     <th class="text-center">Acciones</th>
                 </tr>
             </thead>
@@ -88,15 +91,21 @@
                 @foreach (var factura in Model)
                 {
                     decimal impuesto = factura.MontoTotal * 0.16m;
+                    var adjuntosFactura = adjuntos.Where(a => a.EntidadId == factura.IdFactura).ToList();
                     <tr>
-                        <td><span class="text-muted">#@factura.IdFactura</span></td>
-                        <td><strong>@factura.NumeroFactura</strong></td>
-                        <td>@(factura.Proveedor?.Nombre ?? "—")</td>
-                        <td>@factura.FechaEmision.ToString("dd/MM/yyyy")</td>
-                        <td class="text-center">$@factura.MontoTotal.ToString("N2")</td>
-                        <td class="text-center">$@impuesto.ToString("N2")</td>
-                        <td class="text-muted">@(factura.Descripcion ?? "—")</td>
-                        <td class="text-center">
+                        <td data-label="ID"><span class="text-muted">#@factura.IdFactura</span></td>
+                        <td data-label="N° Factura"><strong>@factura.NumeroFactura</strong></td>
+                        <td data-label="Proveedor">@(factura.Proveedor?.Nombre ?? "—")</td>
+                        <td data-label="Fecha Emisión">@factura.FechaEmision.ToString("dd/MM/yyyy")</td>
+                        <td class="text-center" data-label="Monto Total">$@factura.MontoTotal.ToString("N2")</td>
+                        <td class="text-center" data-label="Impuesto">$@impuesto.ToString("N2")</td>
+                        <td class="text-muted" data-label="Descripción">@(factura.Descripcion ?? "—")</td>
+                        <td class="text-center" data-label="Adjuntos">
+                            <button type="button" class="btn-action" title="Ver adjuntos" data-bs-toggle="modal" data-bs-target="#modalAdjuntos_@factura.IdFactura">
+                                <i class="bi bi-paperclip"></i> @adjuntosFactura.Count
+                            </button>
+                        </td>
+                        <td class="text-center" data-label="Acciones">
                             @if (User.Identity.IsAuthenticated)
                             {
                                 <a asp-action="EditarFactura" asp-route-id="@factura.IdFactura" class="btn-action edit me-1" title="Editar">
@@ -114,6 +123,60 @@
                             }
                         </td>
                     </tr>
+
+                    <!-- Modal Adjuntos -->
+                    <div class="modal fade" id="modalAdjuntos_@factura.IdFactura" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title"><i class="bi bi-paperclip me-2"></i>Adjuntos — @factura.NumeroFactura</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    @if (!adjuntosFactura.Any())
+                                    {
+                                        <p class="text-muted mb-3" style="font-size:13px;">Todavía no hay comprobantes adjuntos a esta factura.</p>
+                                    }
+                                    else
+                                    {
+                                        <ul class="list-group mb-3">
+                                            @foreach (var adj in adjuntosFactura)
+                                            {
+                                                <li class="list-group-item d-flex justify-content-between align-items-center" style="font-size:13px;">
+                                                    <a href="@adj.UrlPublica" target="_blank" rel="noopener" class="text-decoration-none text-truncate" style="max-width:220px;">
+                                                        <i class="bi bi-file-earmark-arrow-down me-1"></i>@adj.NombreArchivo
+                                                    </a>
+                                                    @if (User.Identity.IsAuthenticated)
+                                                    {
+                                                        <form asp-action="EliminarAdjuntoFactura" method="post" class="d-inline" onsubmit="return confirm('¿Eliminar este adjunto?');">
+                                                            <input type="hidden" name="id" value="@adj.Id" />
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                    @if (User.Identity.IsAuthenticated)
+                                    {
+                                        <form asp-action="SubirAdjuntoFactura" method="post" enctype="multipart/form-data">
+                                            <input type="hidden" name="facturaId" value="@factura.IdFactura" />
+                                            <div class="input-group">
+                                                <input type="file" name="archivo" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
+                                                <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Subir</button>
+                                            </div>
+                                            <p class="text-muted mt-1 mb-0" style="font-size:11px;">PDF, PNG, JPG o WEBP · máximo 10 MB</p>
+                                        </form>
+                                    }
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 }
             </tbody>
         </table>

@@ -58,11 +58,11 @@
                 @foreach (var empleado in Model)
                 {
                     <tr>
-                        <td><span class="text-muted">#@empleado.IdEmpleado</span></td>
-                        <td><strong>@empleado.Nombre</strong></td>
-                        <td>@empleado.Apellido</td>
-                        <td>@empleado.Correo</td>
-                        <td class="text-center">
+                        <td data-label="ID"><span class="text-muted">#@empleado.IdEmpleado</span></td>
+                        <td data-label="Nombre"><strong>@empleado.Nombre</strong></td>
+                        <td data-label="Apellido">@empleado.Apellido</td>
+                        <td data-label="Correo">@empleado.Correo</td>
+                        <td class="text-center" data-label="Acciones">
                             @if (User.Identity.IsAuthenticated)
                             {
                                 <a asp-action="EditarEmpleado" asp-route-id="@empleado.IdEmpleado" class="btn-action edit me-1" title="Editar">

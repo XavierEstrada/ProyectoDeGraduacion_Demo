@@ -82,12 +82,12 @@
                 @foreach (var proveedor in Model)
                 {
                     <tr>
-                        <td><span class="text-muted">#@proveedor.IdProveedor</span></td>
-                        <td><strong>@proveedor.Nombre</strong></td>
-                        <td>@proveedor.Correo</td>
-                        <td>@proveedor.Telefono</td>
-                        <td class="text-muted">@proveedor.Direccion</td>
-                        <td class="text-center">
+                        <td data-label="ID"><span class="text-muted">#@proveedor.IdProveedor</span></td>
+                        <td data-label="Nombre"><strong>@proveedor.Nombre</strong></td>
+                        <td data-label="Correo">@proveedor.Correo</td>
+                        <td data-label="Teléfono">@proveedor.Telefono</td>
+                        <td class="text-muted" data-label="Dirección">@proveedor.Direccion</td>
+                        <td class="text-center" data-label="Estado">
                             @if (proveedor.Estado)
                             {
                                 <span class="badge-status active">Activo</span>
@@ -97,7 +97,7 @@
                                 <span class="badge-status inactive">Inactivo</span>
                             }
                         </td>
-                        <td class="text-center">
+                        <td class="text-center" data-label="Acciones">
                             @if (User.Identity.IsAuthenticated)
                             {
                                 <form asp-action="CambiarEstado" asp-controller="Proveedores" method="post" style="display:inline;">

@@ -89,9 +89,9 @@
                         _                                                    => "pending"
                     };
                     <tr>
-                        <td><strong>@proyecto.Nombre</strong></td>
-                        <td>@proyecto.FechaCreacion.ToString("dd/MM/yyyy")</td>
-                        <td>
+                        <td data-label="Proyecto"><strong>@proyecto.Nombre</strong></td>
+                        <td data-label="Fecha Creación">@proyecto.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                        <td data-label="Cliente">
                             @if (proyecto.Usuario != null)
                             {
                                 <span>@proyecto.Usuario.Nombre @proyecto.Usuario.Apellido</span>
@@ -101,7 +101,7 @@
                                 <span class="text-muted">Sin asignar</span>
                             }
                         </td>
-                        <td class="text-center">
+                        <td class="text-center" data-label="Costo Total">
                             @if (proyecto.CostoTotal != null)
                             {
                                 <strong>$@proyecto.CostoTotal.ToString("N2")</strong>
@@ -111,10 +111,10 @@
                                 <span class="text-muted">—</span>
                             }
                         </td>
-                        <td class="text-center">
+                        <td class="text-center" data-label="Estado">
                             <span class="badge-status @estadoBadgeClass">@proyecto.Estado.ToString()</span>
                         </td>
-                        <td class="text-center">
+                        <td class="text-center" data-label="Acciones">
                             <a href="@Url.Action("Dashboard", "Proyecto", new { id = proyecto.Id })" class="btn-action view me-1" title="Dashboard">
                                 <i class="bi bi-speedometer2"></i>
                             </a>

@@ -86,6 +86,10 @@
         box-shadow: 0 4px 20px rgba(62, 100, 255, 0.1);
         border: 1px solid rgba(62, 100, 255, 0.08);
         transition: .3s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
     .stat-card:hover {
@@ -221,25 +225,31 @@
 <!-- Stats Row -->
 <div class="container my-5">
     <div class="row g-3">
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
             <div class="stat-card">
                 <div class="stat-number">6</div>
                 <div class="stat-label">Módulos del Sistema</div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
             <div class="stat-card">
                 <div class="stat-number">4</div>
                 <div class="stat-label">Roles de Usuario</div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
             <div class="stat-card">
                 <div class="stat-number">2FA</div>
                 <div class="stat-label">Autenticación Segura</div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
+            <div class="stat-card">
+                <div class="stat-number">Kanban</div>
+                <div class="stat-label">Drag &amp; Drop de Tareas</div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
             <div class="stat-card">
                 <div class="stat-number">Excel</div>
                 <div class="stat-label">Exportación de Reportes</div>
@@ -259,7 +269,7 @@
             <div class="feature-card">
                 <div class="feature-icon"><i class="bi bi-house-gear-fill"></i></div>
                 <h5>Gestión de Proyectos</h5>
-                <p>Organice proyectos en fases y tareas, asigne hitos a empleados, controle el progreso y visualice dashboards en tiempo real.</p>
+                <p>Organice proyectos en fases y tareas, asigne hitos a empleados, controle el progreso desde una tabla o un tablero Kanban, y visualice dashboards con gráficos y cronogramas.</p>
             </div>
         </div>
         <div class="col-md-4">
@@ -300,6 +310,58 @@
     </div>
 </div>
 
+<!-- Advanced Features Section -->
+<div class="container mb-5">
+    <div class="text-center mb-4">
+        <h2 class="section-title">Funcionalidades Destacadas</h2>
+        <p class="section-subtitle">Herramientas pensadas para la operación diaria, no solo para un CRUD básico</p>
+    </div>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-speedometer2"></i></div>
+                <h5>Dashboard Ejecutivo</h5>
+                <p>Vista consolidada de todos los proyectos: total invertido, estado general, costo por proyecto y próximos hitos por vencer, en un solo lugar.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-kanban-fill"></i></div>
+                <h5>Tablero Kanban</h5>
+                <p>Arrastre y suelte tareas entre las columnas Pendiente, En Progreso y Completada para actualizar su estado sin recargar la página.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-paperclip"></i></div>
+                <h5>Archivos Adjuntos</h5>
+                <p>Suba comprobantes a las facturas directamente desde la app, almacenados en Supabase Storage.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-clock-history"></i></div>
+                <h5>Historial de Actividad</h5>
+                <p>Auditoría de las acciones realizadas en el sistema: quién hizo qué cambio y cuándo, visible para administradores.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-search"></i></div>
+                <h5>Búsqueda Global</h5>
+                <p>Encuentre proyectos, facturas y proveedores desde una sola barra de búsqueda disponible en cualquier pantalla.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                <h5>Gráficos y Cronogramas</h5>
+                <p>Costos por fase, avance de tareas y cronograma tipo Gantt calculado automáticamente a partir de las fechas reales del proyecto.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Demo Access Section -->
 @if (!User.Identity.IsAuthenticated)
 {
@@ -320,12 +382,14 @@
                     </div>
                 </div>
             </div>
-            <a asp-controller="Acceso" asp-action="IniciarSesion" class="btn btn-primary px-4 py-2 me-2">
-                <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
-            </a>
-            <a asp-controller="Proyecto" asp-action="Proyectos" class="btn btn-outline-primary px-4 py-2">
-                <i class="bi bi-eye me-1"></i> Explorar sin cuenta
-            </a>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a asp-controller="Acceso" asp-action="IniciarSesion" class="btn btn-primary px-4 py-2" style="min-width:220px;">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+                </a>
+                <a asp-controller="Proyecto" asp-action="Proyectos" class="btn btn-outline-primary px-4 py-2" style="min-width:220px;">
+                    <i class="bi bi-eye me-1"></i> Explorar sin cuenta
+                </a>
+            </div>
         </div>
     </div>
 }

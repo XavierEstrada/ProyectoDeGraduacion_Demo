@@ -1,0 +1,74 @@
+@model IEnumerable<ProyectoSGIOCore.Models.RegistroActividad>
+@{
+    ViewBag.Title = "Historial de Actividad";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int total = Model.Count();
+    int usuariosDistintos = Model.Select(r => r.UsuarioNombre).Distinct().Count();
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-left">
+        <h1 class="page-header-title"><i class="bi bi-clock-history me-2 text-primary"></i>Historial de Actividad</h1>
+        <p class="page-header-subtitle">Registro de las últimas acciones realizadas en el sistema</p>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-mini">
+        <div class="stat-mini-icon blue"><i class="bi bi-list-check"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@total</div>
+            <div class="stat-mini-label">Registros (últimos 200)</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon purple"><i class="bi bi-people"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@usuariosDistintos</div>
+            <div class="stat-mini-label">Usuarios distintos</div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table id="actividadTable" class="sgio-table">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Acción</th>
+                    <th>Entidad</th>
+                    <th>Detalle</th>
+                    <th class="text-center">Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td class="fw-500" data-label="Usuario">@r.UsuarioNombre</td>
+                        <td class="text-capitalize" data-label="Acción">@r.Accion</td>
+                        <td data-label="Entidad"><span class="badge-status progress">@r.Entidad</span></td>
+                        <td class="text-muted" data-label="Detalle">@r.Detalle</td>
+                        <td class="text-center" style="font-size:13px;" data-label="Fecha">@r.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $("#actividadTable").DataTable({
+                language: { url: "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json" },
+                pageLength: 25,
+                order: []
+            });
+        });
+    </script>
+}

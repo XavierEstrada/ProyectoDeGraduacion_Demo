@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ProyectoSGIOCore.Data;
@@ -11,9 +12,11 @@ using ProyectoSGIOCore.Data;
 namespace ProyectoSGIOCore.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    partial class AppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260816211754_AddAdjuntos")]
+    partial class AddAdjuntos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -299,34 +302,6 @@ namespace ProyectoSGIOCore.Migrations
                     b.HasIndex("IdUsuario");
 
                     b.ToTable("Proyectos");
-                });
-
-            modelBuilder.Entity("ProyectoSGIOCore.Models.RegistroActividad", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Accion")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Detalle")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Entidad")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UsuarioNombre")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("RegistrosActividad");
                 });
 
             modelBuilder.Entity("ProyectoSGIOCore.Models.Rol", b =>

@@ -88,6 +88,7 @@
 
 <!-- Tabla -->
 <div class="table-card">
+    <div class="table-responsive">
     <table id="usuariosTable" class="sgio-table">
         <thead>
             <tr>
@@ -110,8 +111,8 @@
                 };
 
                 <tr>
-                    <td class="text-muted" style="font-size:12px;">@usuario.IdUsuario</td>
-                    <td>
+                    <td class="text-muted" style="font-size:12px;" data-label="#">@usuario.IdUsuario</td>
+                    <td data-label="Usuario">
                         <div class="d-flex align-items-center gap-2">
                             <div style="width:32px;height:32px;border-radius:50%;
                                         background:linear-gradient(135deg,#3e64ff20,#3e64ff40);
@@ -124,11 +125,11 @@
                             </div>
                         </div>
                     </td>
-                    <td class="text-muted" style="font-size:13px;">@usuario.Correo</td>
-                    <td>
+                    <td class="text-muted" style="font-size:13px;" data-label="Correo">@usuario.Correo</td>
+                    <td data-label="Rol">
                         <span class="badge-status @rolBadge">@(usuario.Rol?.Nombre ?? "—")</span>
                     </td>
-                    <td>
+                    <td data-label="Estado">
                         @if (usuario.Activo)
                         {
                             <span class="badge-status complete">Activo</span>
@@ -138,12 +139,16 @@
                             <span class="badge-status inactive">Bloqueado</span>
                         }
                     </td>
-                    <td class="text-center">
+                    <td class="text-center" data-label="Acciones">
                         <div class="d-flex gap-1 justify-content-center">
-                            <a href="@Url.Action("CambiarRol", "Administrativo", new { id = usuario.IdUsuario })"
-                               class="btn btn-action edit" title="Cambiar rol">
+                            <button type="button" class="btn btn-action edit cambiar-rol-btn"
+                                    data-bs-toggle="modal" data-bs-target="#modalCambiarRol"
+                                    data-usuario-id="@usuario.IdUsuario"
+                                    data-usuario-nombre="@usuario.Nombre @usuario.Apellido"
+                                    data-rol-actual="@usuario.IdRol"
+                                    title="Cambiar rol">
                                 <i class="bi bi-pencil"></i>
-                            </a>
+                            </button>
                             @if (usuario.Activo)
                             {
                                 <button type="button" class="btn btn-action delete bloquearID"
@@ -168,6 +173,7 @@
             }
         </tbody>
     </table>
+    </div>
 </div>
 
 <!-- Modal Cambiar Estado -->
@@ -194,6 +200,35 @@
     </div>
 </div>
 
+<!-- Modal Cambiar Rol -->
+<div class="modal fade" id="modalCambiarRol" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-gear me-2"></i>Cambiar Rol</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CambiarRol" asp-controller="Administrativo" method="post">
+                <input type="hidden" name="id" id="cambiarRolUsuarioId" value="" />
+                <div class="modal-body">
+                    <p class="mb-3">Usuario: <strong id="cambiarRolUsuarioNombre"></strong></p>
+                    <label class="form-label">Nuevo rol</label>
+                    <select name="nuevoRolId" id="cambiarRolSelect" class="form-select" required>
+                        @foreach (var rol in (List<ProyectoSGIOCore.Models.Rol>)ViewBag.Roles)
+                        {
+                            <option value="@rol.IdRol">@rol.Nombre</option>
+                        }
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section scripts {
 <script>
     $(document).ready(function () {
@@ -209,6 +244,12 @@
 
     $(".bloquearID").click(function () {
         $("#IdUsuario").val($(this).attr('data-bs-id'));
+    });
+
+    $(".cambiar-rol-btn").click(function () {
+        $("#cambiarRolUsuarioId").val($(this).data("usuario-id"));
+        $("#cambiarRolUsuarioNombre").text($(this).data("usuario-nombre"));
+        $("#cambiarRolSelect").val($(this).data("rol-actual"));
     });
 </script>
 }

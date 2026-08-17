@@ -5,18 +5,26 @@ using ProyectoSGIOCore.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using ProyectoSGIOCore.ViewModels;
+using ProyectoSGIOCore.Services;
 using Newtonsoft.Json;
+using System.Security.Claims;
 
 namespace ProyectoSGIOCore.Controllers
 {
-    [Authorize(Roles = "Administrador, Supervisor, Usuario")]
+    // Nota: [Authorize] de clase + de método se combinan con AND, no se sobrescriben.
+    // Por eso la clase debe tener el conjunto MÁS AMPLIO de roles (incluye Empleado),
+    // y cada acción que deba ser exclusiva de Administrador/Supervisor lleva su propio
+    // [Authorize(Roles = "Administrador, Supervisor")] a nivel de método.
+    [Authorize(Roles = "Administrador, Supervisor, Empleado")]
     public class ProyectoController : Controller
     {
         private readonly AppDBContext _dbContext;
+        private readonly IActividadService _actividadService;
 
-        public ProyectoController(AppDBContext context)
+        public ProyectoController(AppDBContext context, IActividadService actividadService)
         {
             _dbContext = context;
+            _actividadService = actividadService;
         }
 
         //Proyectos
@@ -24,22 +32,33 @@ namespace ProyectoSGIOCore.Controllers
         [HttpGet]
         public async Task<IActionResult> Proyectos()
         {
-            var proyectos = await _dbContext.Proyectos
+            var query = _dbContext.Proyectos
                 .Include(p => p.Fases)
                 .ThenInclude(f => f.Tareas)
                 .Include(p => p.Usuario)
-                .ToListAsync();
+                .AsQueryable();
+
+            // Un cliente logueado (rol "Usuario") solo ve sus propios proyectos asignados
+            if (User.Identity?.IsAuthenticated == true && User.IsInRole("Usuario"))
+            {
+                var idUsuarioActual = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                query = query.Where(p => p.IdUsuario == idUsuarioActual);
+            }
+
+            var proyectos = await query.ToListAsync();
 
             return View(proyectos);
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public IActionResult CrearProyecto()
         {
             return View();
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> CrearProyecto(Proyecto proyecto, List<Fase> fases)
         {
             if (string.IsNullOrEmpty(proyecto.Nombre))
@@ -124,6 +143,8 @@ namespace ProyectoSGIOCore.Controllers
 
                     await _dbContext.SaveChangesAsync();
 
+                    await _actividadService.RegistrarAsync(User, "creó", "Proyecto", $"Proyecto '{proyecto.Nombre}'");
+
                     TempData["MensajeExito"] = $"Proyecto creado correctamente. Costo total: ${proyecto.CostoTotal:N2}";
                     return RedirectToAction("Proyectos");
                 }
@@ -139,6 +160,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> EditarProyecto(int id)
         {
             var proyecto = await _dbContext.Proyectos.FindAsync(id);
@@ -151,6 +173,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> EditarProyecto(Proyecto entidad)
         {
             var proyecto = await _dbContext.Proyectos.FindAsync(entidad.Id);
@@ -164,12 +187,15 @@ namespace ProyectoSGIOCore.Controllers
             proyecto.Estado = entidad.Estado;
             await _dbContext.SaveChangesAsync();
 
+            await _actividadService.RegistrarAsync(User, "editó", "Proyecto", $"Proyecto '{proyecto.Nombre}'");
+
             TempData["MensajeExito"] = $"Proyecto '{proyecto.Nombre}' editado correctamente.";
             return RedirectToAction("Proyectos");
         }
 
         [HttpPost]
-        public IActionResult EliminarProyecto(int proyectoId)
+        [Authorize(Roles = "Administrador, Supervisor")]
+        public async Task<IActionResult> EliminarProyecto(int proyectoId)
         {
             try
             {
@@ -180,6 +206,8 @@ namespace ProyectoSGIOCore.Controllers
 
                 if (proyecto != null)
                 {
+                    var nombreProyecto = proyecto.Nombre;
+
                     // Eliminar tareas
                     foreach (var fase in proyecto.Fases)
                     {
@@ -194,6 +222,8 @@ namespace ProyectoSGIOCore.Controllers
                     // Eliminar proyecto
                     _dbContext.Proyectos.Remove(proyecto);
                     _dbContext.SaveChanges();
+
+                    await _actividadService.RegistrarAsync(User, "eliminó", "Proyecto", $"Proyecto '{nombreProyecto}'");
 
                     TempData["MensajeExito"] = "El proyecto ha sido eliminado exitosamente.";
                 }
@@ -270,6 +300,16 @@ namespace ProyectoSGIOCore.Controllers
 
             if (proyecto == null) return NotFound();
 
+            // Un cliente logueado (rol "Usuario") solo puede ver el dashboard de su propio proyecto
+            if (User.Identity?.IsAuthenticated == true && User.IsInRole("Usuario"))
+            {
+                var idUsuarioActual = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                if (proyecto.IdUsuario != idUsuarioActual)
+                {
+                    return RedirectToAction("Proyectos");
+                }
+            }
+
             var usuarios = await _dbContext.Usuarios
                 .Where(u => u.Rol.Nombre == "Empleado")
                 .ToListAsync();
@@ -294,13 +334,11 @@ namespace ProyectoSGIOCore.Controllers
 
             var tareaData = proyecto.Fases
                 .SelectMany(f => f.Tareas)
-                .GroupBy(t => t.Completada)
+                .GroupBy(t => t.Completada ? "Completada" : (t.EnProgreso ? "En Progreso" : "Pendiente"))
                 .Select(g => new
                 {
-                    Completada = g.Key,
-                    Nombre = g.Key ? "Completadas" : "No Completadas",
-                    Count = g.Count(),
-                    CountP = g.Count() * 10
+                    Nombre = g.Key,
+                    Count = g.Count()
                 })
                 .ToList();
 
@@ -310,7 +348,10 @@ namespace ProyectoSGIOCore.Controllers
                     f.Nombre,
                     PorcentajeCompletadas = f.Tareas.Count == 0
                         ? 0
-                        : (f.Tareas.Count(t => t.Completada) * 100 / f.Tareas.Count())
+                        : (f.Tareas.Count(t => t.Completada) * 100 / f.Tareas.Count()),
+                    CostoTotal = f.CostoTotal,
+                    FechaInicio = f.Tareas.Any() ? f.Tareas.Min(t => t.FechaInicio) : (DateTime?)null,
+                    FechaFin = f.Tareas.Any() ? f.Tareas.Max(t => t.FechaFin) : (DateTime?)null
                 })
                 .ToList();
 
@@ -337,8 +378,130 @@ namespace ProyectoSGIOCore.Controllers
             return View(proyecto);
         }
 
+        // Dashboard agregado de todos los proyectos
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<IActionResult> DashboardGeneral()
+        {
+            var proyectos = await _dbContext.Proyectos
+                .Include(p => p.Fases)
+                .ThenInclude(f => f.Tareas)
+                .Include(p => p.Hitos)
+                .ThenInclude(h => h.Usuario)
+                .Include(p => p.Usuario)
+                .ToListAsync();
+
+            var totalInvertido = proyectos.Sum(p => p.CostoTotal);
+            var totalProyectos = proyectos.Count;
+            var activos = proyectos.Count(p => p.Estado == EstadoProyecto.Progreso || p.Estado == EstadoProyecto.Planificacion);
+            var completados = proyectos.Count(p => p.Estado == EstadoProyecto.Completado);
+            var pendientes = proyectos.Count(p => p.Estado == EstadoProyecto.Pendiente);
+
+            var totalTareas = proyectos.SelectMany(p => p.Fases).SelectMany(f => f.Tareas).Count();
+            var tareasCompletadas = proyectos.SelectMany(p => p.Fases).SelectMany(f => f.Tareas).Count(t => t.Completada);
+            var progresoGeneral = totalTareas == 0 ? 0 : (tareasCompletadas * 100 / totalTareas);
+
+            var estadoNombres = new Dictionary<EstadoProyecto, string>
+            {
+                { EstadoProyecto.Planificacion, "Planificación" },
+                { EstadoProyecto.Progreso, "En Progreso" },
+                { EstadoProyecto.Completado, "Completado" },
+                { EstadoProyecto.Pendiente, "Pendiente" }
+            };
+
+            var estadoData = proyectos
+                .GroupBy(p => p.Estado)
+                .Select(g => new { Nombre = estadoNombres[g.Key], Count = g.Count() })
+                .ToList();
+
+            var costoPorProyecto = proyectos
+                .OrderByDescending(p => p.CostoTotal)
+                .Take(8)
+                .Select(p => new { p.Nombre, Costo = p.CostoTotal })
+                .ToList();
+
+            var hoy = DateTime.Today;
+            var proximosHitos = proyectos
+                .SelectMany(p => p.Hitos.Select(h => new { Hito = h, Proyecto = p }))
+                .Where(x => x.Hito.estado != 1 && x.Hito.estado != 4 && x.Hito.Fecha >= hoy)
+                .OrderBy(x => x.Hito.Fecha)
+                .Take(8)
+                .Select(x => new HitoResumenVM
+                {
+                    Descripcion = x.Hito.Descripcion,
+                    Proyecto = x.Proyecto.Nombre,
+                    ProyectoId = x.Proyecto.Id,
+                    Fecha = x.Hito.Fecha,
+                    DiasRestantes = (x.Hito.Fecha.Date - hoy).Days,
+                    Responsable = x.Hito.Usuario != null ? $"{x.Hito.Usuario.Nombre} {x.Hito.Usuario.Apellido}" : "Sin asignar"
+                })
+                .ToList();
+
+            ViewBag.TotalInvertido = totalInvertido;
+            ViewBag.TotalProyectos = totalProyectos;
+            ViewBag.Activos = activos;
+            ViewBag.Completados = completados;
+            ViewBag.Pendientes = pendientes;
+            ViewBag.TotalTareas = totalTareas;
+            ViewBag.TareasCompletadas = tareasCompletadas;
+            ViewBag.ProgresoGeneral = progresoGeneral;
+            ViewBag.EstadoDataJson = JsonConvert.SerializeObject(estadoData);
+            ViewBag.CostoPorProyectoJson = JsonConvert.SerializeObject(costoPorProyecto);
+            ViewBag.ProximosHitos = proximosHitos;
+
+            return View(proyectos);
+        }
+
+        // Kanban de tareas
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<IActionResult> Kanban(int id)
+        {
+            var proyecto = await _dbContext.Proyectos
+                .Include(p => p.Fases)
+                .ThenInclude(f => f.Tareas)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (proyecto == null) return NotFound();
+
+            return View(proyecto);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor, Empleado")]
+        public async Task<IActionResult> ActualizarColumnaKanban(int tareaId, string columna)
+        {
+            var tarea = await _dbContext.Tareas.FindAsync(tareaId);
+            if (tarea == null)
+            {
+                return NotFound(new { mensaje = "Tarea no encontrada." });
+            }
+
+            switch (columna)
+            {
+                case "pendiente":
+                    tarea.Completada = false;
+                    tarea.EnProgreso = false;
+                    break;
+                case "progreso":
+                    tarea.Completada = false;
+                    tarea.EnProgreso = true;
+                    break;
+                case "completada":
+                    tarea.Completada = true;
+                    tarea.EnProgreso = false;
+                    break;
+                default:
+                    return BadRequest(new { mensaje = "Columna no reconocida." });
+            }
+
+            await _dbContext.SaveChangesAsync();
+            return Ok(new { mensaje = "Tarea actualizada." });
+        }
+
         //Clientes
         [HttpGet]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> AsignarCliente(int id)
         {
             var proyecto = await _dbContext.Proyectos.FindAsync(id);
@@ -355,6 +518,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> AsignarCliente(int id, int usuarioId)
         {
             var proyecto = await _dbContext.Proyectos.FindAsync(id);
@@ -378,13 +542,16 @@ namespace ProyectoSGIOCore.Controllers
             proyecto.IdUsuario = usuarioId;
             await _dbContext.SaveChangesAsync();
 
+            await _actividadService.RegistrarAsync(User, "asignó", "Cliente", $"Cliente asignado al proyecto '{proyecto.Nombre}'");
+
             TempData["MensajeExito"] = "Cliente asignado correctamente.";
             return RedirectToAction("GestionarProyecto", new { id });
         }
 
         //Fases
         [HttpPost]
-        public IActionResult AgregarFase(int proyectoId, string Nombre)
+        [Authorize(Roles = "Administrador, Supervisor")]
+        public async Task<IActionResult> AgregarFase(int proyectoId, string Nombre)
         {
             if (string.IsNullOrWhiteSpace(Nombre))
             {
@@ -418,11 +585,14 @@ namespace ProyectoSGIOCore.Controllers
             _dbContext.Fases.Add(nuevaFase);
             _dbContext.SaveChanges();
 
+            await _actividadService.RegistrarAsync(User, "agregó", "Fase", $"Fase '{Nombre}' al proyecto '{proyecto.Nombre}'");
+
             TempData["MensajeExito"] = "Fase agregada correctamente.";
             return RedirectToAction("GestionarProyecto", new { id = proyectoId });
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> EliminarFase(int faseId)
         {
             var fase = await _dbContext.Fases
@@ -444,6 +614,7 @@ namespace ProyectoSGIOCore.Controllers
                 _dbContext.Fases.Remove(fase);
 
                 await _dbContext.SaveChangesAsync();
+                await _actividadService.RegistrarAsync(User, "eliminó", "Fase", $"Fase '{fase.Nombre}'");
                 TempData["MensajeExito"] = "Fase eliminada correctamente.";
             }
             catch (Exception ex)
@@ -468,6 +639,7 @@ namespace ProyectoSGIOCore.Controllers
 
         //Tareas
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> AgregarTareasModal(int faseId, List<Tarea> tareas)
         {
             var fase = await _dbContext.Fases.Include(f => f.Tareas).FirstOrDefaultAsync(f => f.Id == faseId);
@@ -497,6 +669,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public IActionResult EliminarTarea(int tareaId)
         {
             try
@@ -537,6 +710,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public IActionResult ActualizarTareas([FromBody] Dictionary<int, bool> tareasCompletadas)
         {
             try
@@ -560,6 +734,7 @@ namespace ProyectoSGIOCore.Controllers
 
         //Hitos
         [HttpGet]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> AsignarHito(int id)
         {
             var proyecto = await _dbContext.Proyectos.FindAsync(id);
@@ -582,6 +757,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> AsignarHito(int id, int usuarioId, int estadoId, string Descripcion, DateTime Fecha)
         {
             var proyecto = await _dbContext.Proyectos.FindAsync(id);
@@ -612,11 +788,14 @@ namespace ProyectoSGIOCore.Controllers
             _dbContext.Hitos.Add(hito);
             _dbContext.SaveChanges();
 
+            await _actividadService.RegistrarAsync(User, "creó", "Hito", $"Hito '{Descripcion}' en el proyecto '{proyecto.Nombre}'");
+
             TempData["MensajeExito"] = "Hito asignado correctamente.";
             return RedirectToAction("Proyectos");
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> EliminarHito(int hitoId)
         {
             var hito = await _dbContext.Hitos
@@ -633,6 +812,7 @@ namespace ProyectoSGIOCore.Controllers
                 _dbContext.Hitos.Remove(hito);
 
                 await _dbContext.SaveChangesAsync();
+                await _actividadService.RegistrarAsync(User, "eliminó", "Hito", $"Hito '{hito.Descripcion}'");
                 TempData["MensajeExito"] = "Hito eliminado correctamente.";
             }
             catch (Exception ex)
@@ -644,6 +824,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public IActionResult AprobarHito(int hitoId)
         {
             var hito = _dbContext.Hitos.Find(hitoId);
@@ -656,6 +837,7 @@ namespace ProyectoSGIOCore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public IActionResult RechazarHito(int hitoId)
         {
             var hito = _dbContext.Hitos.Find(hitoId);
@@ -667,7 +849,10 @@ namespace ProyectoSGIOCore.Controllers
             return RedirectToAction("GestionarProyecto", new { id = hito.ProyectoId });
         }
 
+        // Edición completa del hito (descripción, responsable, estado, fecha) — solo gestores.
+        // Empleado usa la acción ActualizarEstadoHito, más abajo, que solo cambia el estado.
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> EditarHito(int hitoId, int usuarioId, int estadoId, string Descripcion, DateTime Fecha)
         {
             var hito = await _dbContext.Hitos.FindAsync(hitoId);
@@ -689,12 +874,36 @@ namespace ProyectoSGIOCore.Controllers
             hito.Fecha = Fecha;
             await _dbContext.SaveChangesAsync();
 
+            await _actividadService.RegistrarAsync(User, "editó", "Hito", $"Hito '{hito.Descripcion}'");
+
             TempData["MensajeExito"] = "Hito actualizado correctamente.";
+            return RedirectToAction("GestionarProyecto", new { id = hito.ProyectoId });
+        }
+
+        // Cambio rápido de estado del hito (sin tocar responsable/fecha/descripción) — lo usa Empleado.
+        [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor, Empleado")]
+        public async Task<IActionResult> ActualizarEstadoHito(int hitoId, int estadoId)
+        {
+            var hito = await _dbContext.Hitos.FindAsync(hitoId);
+            if (hito == null)
+            {
+                TempData["MensajeError"] = "Hito no encontrado.";
+                return RedirectToAction("Proyectos");
+            }
+
+            hito.estado = estadoId;
+            await _dbContext.SaveChangesAsync();
+
+            await _actividadService.RegistrarAsync(User, "actualizó el estado de", "Hito", $"Hito '{hito.Descripcion}'");
+
+            TempData["MensajeExito"] = "Estado del hito actualizado correctamente.";
             return RedirectToAction("GestionarProyecto", new { id = hito.ProyectoId });
         }
 
         //Guardar Cambios
         [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> GuardarCambios(int proyectoId, EstadoProyecto Estado, List<int> tareasCompletadas)
         {
             var proyecto = await _dbContext.Proyectos

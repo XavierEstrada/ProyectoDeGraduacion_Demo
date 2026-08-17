@@ -260,52 +260,67 @@ h1, h2, h3, h4, h5,
     font-size: 10.5px;
 }
 
-/* Sidebar collapsed */
-#sidebar.active {
-    width: 72px;
-    min-width: 72px;
-    max-width: 72px;
-}
-#sidebar.active .sidebar-brand-text,
-#sidebar.active .sidebar-section-label,
-#sidebar.active .nav-label,
-#sidebar.active .nav-arrow,
-#sidebar.active .sidebar-footer-info { display: none; }
-#sidebar.active .sidebar-brand { padding: 18px 0; justify-content: center; }
-#sidebar.active .sidebar-brand-icon { margin: 0; }
-#sidebar.active .sidebar-nav > li > a,
-#sidebar.active .sidebar-nav-link { padding: 12px 0; justify-content: center; }
-#sidebar.active .sidebar-nav .nav-icon { width: auto; font-size: 18px; }
-#sidebar.active .sidebar-submenu { display: none !important; }
-#sidebar.active .sidebar-footer { justify-content: center; padding: 14px 0; }
-#sidebar.active .sidebar-footer-avatar { width: 36px; height: 36px; }
-
-/* Content shifts when sidebar collapses */
-#content.sidebar-collapsed {
-    margin-left: 72px;
-    width: calc(100% - 72px);
-}
-
-@media (max-width: 991.98px) {
-    #sidebar {
+/* Sidebar collapsed — SOLO en escritorio (≥992px). En pantallas angostas el
+   sidebar es un panel completo que se abre/cierra, no una franja de íconos;
+   por eso estas reglas quedan encerradas en el media query de abajo — de lo
+   contrario ".active" (reutilizada también para abrir el panel en móvil)
+   heredaba este colapso a solo-íconos y rompía el menú en celular/tablet. */
+@media (min-width: 992px) {
+    #sidebar.active {
         width: 72px;
         min-width: 72px;
         max-width: 72px;
-        left: -72px;
+    }
+    #sidebar.active .sidebar-brand-text,
+    #sidebar.active .sidebar-section-label,
+    #sidebar.active .nav-label,
+    #sidebar.active .nav-arrow,
+    #sidebar.active .sidebar-footer-info { display: none; }
+    #sidebar.active .sidebar-brand { padding: 18px 0; justify-content: center; }
+    #sidebar.active .sidebar-brand-icon { margin: 0; }
+    #sidebar.active .sidebar-nav > li > a,
+    #sidebar.active .sidebar-nav-link { padding: 12px 0; justify-content: center; }
+    #sidebar.active .sidebar-nav .nav-icon { width: auto; font-size: 18px; }
+    #sidebar.active .sidebar-submenu { display: none !important; }
+    #sidebar.active .sidebar-footer { justify-content: center; padding: 14px 0; }
+    #sidebar.active .sidebar-footer-avatar { width: 36px; height: 36px; }
+
+    /* Content shifts when sidebar collapses */
+    #content.sidebar-collapsed {
+        margin-left: 72px;
+        width: calc(100% - 72px);
+    }
+}
+
+@media (max-width: 991.98px) {
+    /* Por debajo de este ancho el sidebar deja de ser una franja de íconos
+       y pasa a ser un panel completo (texto + submenús) que se desliza
+       encima del contenido — el ícono-solo no deja espacio para navegar
+       con el dedo ni para abrir submenús en tablet/celular. */
+    #sidebar {
+        width: 260px;
+        min-width: 260px;
+        max-width: 260px;
+        left: -260px;
+        box-shadow: 12px 0 32px rgba(0,0,0,0.18);
     }
     #sidebar.active { left: 0; }
-    #content {
-        margin-left: 0;
-        width: 100%;
-    }
-    #sidebar .sidebar-brand-text,
-    #sidebar .sidebar-section-label,
-    #sidebar .nav-label,
-    #sidebar .nav-arrow,
-    #sidebar .sidebar-footer-info { display: none; }
-    #sidebar .sidebar-brand { padding: 18px 0; justify-content: center; }
-    #sidebar .sidebar-nav > li > a { padding: 12px 0; justify-content: center; }
-    #sidebar .sidebar-nav .nav-icon { width: auto; font-size: 18px; }
+    /* El override real de #content (que gana por orden en la cascada, ya que
+       tiene la misma especificidad que la regla base) vive más abajo, justo
+       después de la sección "TOP NAVBAR" donde se define #content. */
+}
+
+/* Fondo oscuro detrás del sidebar móvil, para cerrar tocando afuera */
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.5);
+    z-index: 99;
+}
+@media (max-width: 991.98px) {
+    body.sidebar-open .sidebar-backdrop { display: block; }
+    body.sidebar-open { overflow: hidden; }
 }
 
 /* ============================================================
@@ -319,6 +334,14 @@ h1, h2, h3, h4, h5,
     flex-direction: column;
     transition: all 0.3s;
     overflow-x: hidden;
+}
+
+@media (max-width: 991.98px) {
+    #content,
+    #content.sidebar-collapsed {
+        margin-left: 0;
+        width: 100%;
+    }
 }
 
 .top-navbar {
@@ -457,7 +480,7 @@ h1, h2, h3, h4, h5,
     margin: 0;
     font-weight: 400;
 }
-.page-header-actions { display: flex; gap: 8px; align-items: center; }
+.page-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* ============================================================
    STAT MINI CARDS (row above table)
@@ -892,4 +915,45 @@ table.sgio-table.dataTable.no-footer { border-bottom: none; }
     .page-header { flex-direction: column; align-items: flex-start; }
     .stats-row { grid-template-columns: repeat(2, 1fr); }
     .form-card { padding: 20px 16px; }
+    .top-navbar { padding: 0 14px; }
+
+    /* Tablas -> tarjetas apiladas: se ve todo sin arrastrar horizontalmente */
+    .sgio-table thead { display: none; }
+    .sgio-table, .sgio-table tbody, .sgio-table tr, .sgio-table td {
+        display: block;
+        width: 100% !important;
+    }
+    .sgio-table tbody tr {
+        margin-bottom: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .sgio-table tbody tr:last-child { margin-bottom: 0; }
+    .sgio-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        text-align: right;
+        padding: 10px 14px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .sgio-table tr td:last-child { border-bottom: none; }
+    .sgio-table td.text-center { text-align: right; }
+    .sgio-table td::before {
+        content: attr(data-label);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+        text-align: left;
+        flex-shrink: 0;
+    }
+    .sgio-table td:empty::before { content: none; }
+}
+
+@media (max-width: 480px) {
+    .stats-row { grid-template-columns: 1fr; }
 }

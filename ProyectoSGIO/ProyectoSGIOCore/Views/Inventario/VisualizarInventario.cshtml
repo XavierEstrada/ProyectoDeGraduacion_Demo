@@ -93,13 +93,13 @@
                 @foreach (var producto in Model)
                 {
                     <tr>
-                        <td><span class="text-muted">#@producto.ID</span></td>
-                        <td><strong>@producto.Nombre</strong></td>
-                        <td>@producto.Categoria</td>
-                        <td class="text-center">@producto.Cantidad</td>
-                        <td class="text-center">$@producto.PrecioUnidad.ToString("N2")</td>
-                        <td class="text-center">$@((producto.Cantidad * producto.PrecioUnidad).ToString("N2"))</td>
-                        <td class="text-center">
+                        <td data-label="ID"><span class="text-muted">#@producto.ID</span></td>
+                        <td data-label="Nombre"><strong>@producto.Nombre</strong></td>
+                        <td data-label="Categoría">@producto.Categoria</td>
+                        <td class="text-center" data-label="Cantidad">@producto.Cantidad</td>
+                        <td class="text-center" data-label="Precio Unitario">$@producto.PrecioUnidad.ToString("N2")</td>
+                        <td class="text-center" data-label="Precio Total">$@((producto.Cantidad * producto.PrecioUnidad).ToString("N2"))</td>
+                        <td class="text-center" data-label="Stock">
                             @if (producto.Cantidad > 0)
                             {
                                 <span class="badge-instock"><i class="bi bi-check2 me-1"></i>En stock</span>
@@ -109,8 +109,8 @@
                                 <span class="badge-nostock"><i class="bi bi-x me-1"></i>Sin stock</span>
                             }
                         </td>
-                        <td class="text-muted">@(producto.InformacionAdicional ?? "—")</td>
-                        <td class="text-center">
+                        <td class="text-muted" data-label="Info Adicional">@(producto.InformacionAdicional ?? "—")</td>
+                        <td class="text-center" data-label="Acciones">
                             @if (User.Identity.IsAuthenticated)
                             {
                                 <a asp-action="EditarInventario" asp-route-id="@producto.ID" class="btn-action edit me-1" title="Editar">

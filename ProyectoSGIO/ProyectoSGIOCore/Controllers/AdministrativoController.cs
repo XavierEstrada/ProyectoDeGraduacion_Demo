@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ProyectoSGIOCore.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using ProyectoSGIOCore.Services;
 
 namespace ProyectoSGIOCore.Controllers
 {
@@ -12,10 +13,12 @@ namespace ProyectoSGIOCore.Controllers
     public class AdministrativoController : Controller
     {
         private readonly AppDBContext _dbContext;
+        private readonly IUtilitariosModel _utilitariosModel;
 
-        public AdministrativoController(AppDBContext dbContext)
+        public AdministrativoController(AppDBContext dbContext, IUtilitariosModel utilitariosModel)
         {
             _dbContext = dbContext;
+            _utilitariosModel = utilitariosModel;
         }
 
         [HttpGet]
@@ -25,7 +28,18 @@ namespace ProyectoSGIOCore.Controllers
             var usuarios = await _dbContext.Usuarios
                                            .Include(u => u.Rol)
                                            .ToListAsync();
+            ViewBag.Roles = await _dbContext.Roles.ToListAsync();
             return View(usuarios);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> HistorialActividad()
+        {
+            var registros = await _dbContext.RegistrosActividad
+                .OrderByDescending(r => r.Fecha)
+                .Take(200)
+                .ToListAsync();
+            return View(registros);
         }
 
         [HttpGet]
@@ -92,7 +106,7 @@ namespace ProyectoSGIOCore.Controllers
                 Nombre = modelo.Nombre,
                 Apellido = modelo.Apellido,
                 Correo = modelo.Correo,
-                Clave = modelo.Clave,
+                Clave = _utilitariosModel.Encrypt(modelo.Clave),
                 IdRol = rolDefault.IdRol,
                 Activo = true,
                 intentos = 0,
@@ -113,22 +127,6 @@ namespace ProyectoSGIOCore.Controllers
                 ViewData["Mensaje"] = "No se pudo crear el usuario";
             }
             return View(modelo);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> CambiarRol(int id)
-        {
-            var usuario = await _dbContext.Usuarios.Include(u => u.Rol).FirstOrDefaultAsync(u => u.IdUsuario == id);
-            if (usuario == null)
-            {
-                return NotFound();
-            }
-
-            // Cargar todos los roles
-            var roles = await _dbContext.Roles.ToListAsync();
-            ViewBag.Roles = roles;
-
-            return View(usuario);
         }
 
         [HttpPost]

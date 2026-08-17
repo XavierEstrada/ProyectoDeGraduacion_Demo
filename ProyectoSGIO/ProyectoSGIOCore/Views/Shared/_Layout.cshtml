@@ -1,4 +1,12 @@
 @using System.Security.Claims
+@{
+    // Un cliente logueado (rol "Usuario") solo ve su(s) propio(s) proyecto(s), y un
+    // Empleado ve todos los proyectos pero nada de Facturas/Inventario/Proveedores/Empleados —
+    // ambos casos quedan ocultos en el menú (además de bloqueados en el backend).
+    bool esUsuarioCliente = User.Identity.IsAuthenticated && User.IsInRole("Usuario");
+    bool esEmpleado = User.Identity.IsAuthenticated && User.IsInRole("Empleado");
+    bool menuRestringido = esUsuarioCliente || esEmpleado;
+}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -32,6 +40,19 @@
         <!-- Navigation -->
         <ul class="sidebar-nav">
 
+            @if (menuRestringido)
+            {
+                <li class="sidebar-section-label">Mi Espacio</li>
+                <li class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Proyecto" ? "active" : "")">
+                    <a asp-controller="Proyecto" asp-action="Proyectos" class="sidebar-nav-link">
+                        <i class="bi bi-house-gear-fill nav-icon"></i>
+                        <span class="nav-label">@(esUsuarioCliente ? "Mis Proyectos" : "Proyectos")</span>
+                    </a>
+                </li>
+            }
+            else
+            {
+
             @if (User.IsInRole("Administrador"))
             {
                 <li class="sidebar-section-label">Administración</li>
@@ -44,13 +65,21 @@
                     <ul class="sidebar-submenu">
                         <li><a asp-controller="Administrativo" asp-action="VisualizarUsuarios">Ver Usuarios</a></li>
                         <li><a asp-controller="Administrativo" asp-action="CrearUsuario">Crear Usuario</a></li>
+                        <li><a asp-controller="Administrativo" asp-action="HistorialActividad">Historial de Actividad</a></li>
                     </ul>
                 </li>
             }
 
             <li class="sidebar-section-label">Módulos</li>
 
-            <li class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Proyecto" ? "active" : "")">
+            <li class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Proyecto" && ViewContext.RouteData.Values["Action"]?.ToString() == "DashboardGeneral" ? "active" : "")">
+                <a asp-controller="Proyecto" asp-action="DashboardGeneral" class="sidebar-nav-link">
+                    <i class="bi bi-speedometer2 nav-icon"></i>
+                    <span class="nav-label">Dashboard Ejecutivo</span>
+                </a>
+            </li>
+
+            <li class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Proyecto" && ViewContext.RouteData.Values["Action"]?.ToString() != "DashboardGeneral" ? "active" : "")">
                 <a href="#" class="sidebar-nav-link has-submenu">
                     <i class="bi bi-house-gear-fill nav-icon"></i>
                     <span class="nav-label">Proyectos</span>
@@ -101,6 +130,8 @@
                 </a>
             </li>
 
+            }
+
         </ul>
 
         <!-- Footer -->
@@ -127,6 +158,8 @@
     </nav>
     <!-- ======= END SIDEBAR ======= -->
 
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
     <!-- ======= MAIN CONTENT ======= -->
     <div id="content">
 
@@ -136,6 +169,15 @@
                 <button id="sidebarCollapse" title="Colapsar menú">
                     <i class="bi bi-list"></i>
                 </button>
+                @if (!esUsuarioCliente)
+                {
+                    <div class="navbar-search position-relative">
+                        <i class="bi bi-search navbar-search-icon"></i>
+                        <input type="text" id="busquedaGlobalInput" class="form-control navbar-search-input"
+                               placeholder="@(esEmpleado ? "Buscar proyectos..." : "Buscar proyectos, facturas, proveedores...")" autocomplete="off" />
+                        <div id="busquedaGlobalResultados" class="navbar-search-results d-none"></div>
+                    </div>
+                }
             </div>
 
             <div class="navbar-right">
@@ -184,6 +226,103 @@
 <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
 <script src="~/js/Menu.js"></script>
 <script src="~/js/funciones.js"></script>
+
+<style>
+    .navbar-search { width: 340px; max-width: 40vw; margin-left: 16px; }
+    .navbar-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px; pointer-events: none; }
+    .navbar-search-input { padding-left: 34px; font-size: 13px; border-radius: 8px; height: 38px; }
+    .navbar-search-results {
+        position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.12); max-height: 400px; overflow-y: auto; z-index: 1050;
+    }
+    .navbar-search-group-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; padding: 8px 14px 4px; }
+    .navbar-search-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 13px; color: #1e293b; text-decoration: none; }
+    .navbar-search-item:hover { background: #f8fafc; }
+    .navbar-search-item-sub { font-size: 11px; color: #94a3b8; }
+    .navbar-search-empty { padding: 16px; text-align: center; color: #94a3b8; font-size: 13px; }
+    @@media (max-width: 768px) {
+        .navbar-search { display: none; }
+    }
+</style>
+<script>
+    (function () {
+        var input = document.getElementById('busquedaGlobalInput');
+        var panel = document.getElementById('busquedaGlobalResultados');
+        if (!input || !panel) return;
+
+        var timeoutId = null;
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+
+        function iconoPara(tipo) {
+            if (tipo === 'Proyecto') return 'bi-kanban';
+            if (tipo === 'Factura') return 'bi-receipt';
+            return 'bi-truck';
+        }
+
+        function render(data) {
+            var grupos = [
+                { label: 'Proyectos', items: data.proyectos || [] },
+                { label: 'Facturas', items: data.facturas || [] },
+                { label: 'Proveedores', items: data.proveedores || [] }
+            ];
+            var totalItems = grupos.reduce(function (acc, g) { return acc + g.items.length; }, 0);
+
+            if (totalItems === 0) {
+                panel.innerHTML = '<div class="navbar-search-empty">Sin resultados</div>';
+                panel.classList.remove('d-none');
+                return;
+            }
+
+            var html = '';
+            grupos.forEach(function (g) {
+                if (!g.items.length) return;
+                html += '<div class="navbar-search-group-label">' + escapeHtml(g.label) + '</div>';
+                g.items.forEach(function (item) {
+                    html += '<a class="navbar-search-item" href="' + item.url + '">' +
+                        '<i class="bi ' + iconoPara(item.tipo) + ' text-primary"></i>' +
+                        '<div><div>' + escapeHtml(item.texto) + '</div>' +
+                        (item.subtexto ? '<div class="navbar-search-item-sub">' + escapeHtml(item.subtexto) + '</div>' : '') +
+                        '</div></a>';
+                });
+            });
+            panel.innerHTML = html;
+            panel.classList.remove('d-none');
+        }
+
+        input.addEventListener('input', function () {
+            var q = this.value.trim();
+            clearTimeout(timeoutId);
+            if (q.length < 2) {
+                panel.classList.add('d-none');
+                return;
+            }
+            timeoutId = setTimeout(function () {
+                fetch('/Busqueda/Global?q=' + encodeURIComponent(q))
+                    .then(function (r) { return r.json(); })
+                    .then(render)
+                    .catch(function () { panel.classList.add('d-none'); });
+            }, 250);
+        });
+
+        input.addEventListener('focus', function () {
+            if (input.value.trim().length >= 2 && panel.innerHTML) {
+                panel.classList.remove('d-none');
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.navbar-search')) {
+                panel.classList.add('d-none');
+            }
+        });
+    })();
+</script>
 
 @RenderSection("scripts", required: false)
 </body>

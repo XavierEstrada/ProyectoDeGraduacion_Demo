@@ -5,6 +5,23 @@
     $('#sidebarCollapse').on('click', function () {
         $('#sidebar').toggleClass('active');
         $('#content').toggleClass('sidebar-collapsed');
+        $('body').toggleClass('sidebar-open', $('#sidebar').hasClass('active'));
+    });
+
+    // En móvil/tablet, el sidebar es un panel superpuesto: tocar el fondo oscuro lo cierra
+    $('#sidebarBackdrop').on('click', function () {
+        $('#sidebar').removeClass('active');
+        $('#content').removeClass('sidebar-collapsed');
+        $('body').removeClass('sidebar-open');
+    });
+
+    // Al elegir un enlace del menú en móvil, cerrar el panel automáticamente
+    $('#sidebar .sidebar-nav a').not('.has-submenu').on('click', function () {
+        if (window.innerWidth <= 991.98) {
+            $('#sidebar').removeClass('active');
+            $('#content').removeClass('sidebar-collapsed');
+            $('body').removeClass('sidebar-open');
+        }
     });
 
     // Submenu toggle

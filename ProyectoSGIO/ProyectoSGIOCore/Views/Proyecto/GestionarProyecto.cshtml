@@ -13,7 +13,48 @@
     int totalTareas = Model.Fases.SelectMany(f => f.Tareas).Count();
     int tareasOk    = Model.Fases.SelectMany(f => f.Tareas).Count(t => t.Completada);
     int progreso    = totalTareas == 0 ? 0 : tareasOk * 100 / totalTareas;
+
+    // Un cliente (rol "Usuario") nunca llega a esta vista (bloqueado por el filtro global),
+    // así que aquí solo distinguimos entre gestión completa (Admin/Supervisor)
+    // y operación de campo (también Empleado: puede cambiar estados, no crear/eliminar).
+    bool esGestor = User.IsInRole("Administrador") || User.IsInRole("Supervisor");
+    bool esOperativo = User.Identity.IsAuthenticated;
 }
+
+<style>
+    .kanban-cta-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(135deg, #3e64ff, #6d8bff);
+        color: #fff;
+        border-radius: 12px;
+        padding: 18px 22px;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(62,100,255,.25);
+        transition: transform .15s, box-shadow .15s;
+    }
+    .kanban-cta-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 22px rgba(62,100,255,.35);
+        color: #fff;
+    }
+    .kanban-cta-icon {
+        width: 48px; height: 48px; border-radius: 12px;
+        background: rgba(255,255,255,.18);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; flex-shrink: 0;
+    }
+    .kanban-cta-title { font-weight: 700; font-size: 15px; }
+    .kanban-cta-sub { font-size: 12.5px; opacity: .85; max-width: 460px; }
+    .kanban-cta-arrow { font-size: 26px; opacity: .9; }
+    @@media (max-width: 640px) {
+        .kanban-cta-sub { display: none; }
+    }
+    .estado-tarea-dropdown .dropdown-menu { min-width: 160px; padding: 6px; }
+    .estado-tarea-dropdown .dropdown-item { padding: 4px 6px; border-radius: 6px; }
+    .estado-tarea-dropdown .dropdown-item:hover { background: #f8fafc; }
+</style>
 
 <!-- Page Header -->
 <div class="page-header">
@@ -21,9 +62,14 @@
         <h1 class="page-title">@Model.Nombre</h1>
         <p class="page-subtitle">Creado el @Model.FechaCreacion.ToString("dd/MM/yyyy") &nbsp;·&nbsp; <span class="badge-status @estadoBadge(Model.Estado)">@Model.Estado</span></p>
     </div>
-    <a asp-action="Proyectos" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left me-1"></i> Volver
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-action="Dashboard" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-graph-up me-1"></i> Dashboard
+        </a>
+        <a asp-action="Proyectos" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </a>
+    </div>
 </div>
 
 <!-- Alertas -->
@@ -70,7 +116,7 @@
 </div>
 
 <!-- Estado del proyecto -->
-@if (User.Identity.IsAuthenticated)
+@if (esGestor)
 {
     <div class="table-card mb-4">
         <div class="p-4">
@@ -106,7 +152,7 @@
                 <p class="mb-0 text-muted" style="font-size:14px;">Sin cliente asignado</p>
             }
         </div>
-        @if (User.Identity.IsAuthenticated)
+        @if (esGestor)
         {
             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAsignarCliente">
                 <i class="bi bi-person-plus me-1"></i>@(Model.Usuario != null ? "Cambiar Cliente" : "Asignar Cliente")
@@ -115,10 +161,22 @@
     </div>
 </div>
 
+<!-- ====== ACCESO AL KANBAN ====== -->
+<a asp-action="Kanban" asp-route-id="@Model.Id" class="kanban-cta-card mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <div class="kanban-cta-icon"><i class="bi bi-kanban-fill"></i></div>
+        <div>
+            <div class="kanban-cta-title">Abrir Tablero Kanban</div>
+            <div class="kanban-cta-sub">Arrastra las tareas entre columnas de Pendiente, En Progreso y Completada</div>
+        </div>
+    </div>
+    <i class="bi bi-arrow-right-circle-fill kanban-cta-arrow"></i>
+</a>
+
 <!-- ====== FASES ====== -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0 fw-600">Fases y Tareas</h5>
-    @if (User.Identity.IsAuthenticated)
+    @if (esGestor)
     {
         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarFase">
             <i class="bi bi-plus-lg me-1"></i>Agregar Fase
@@ -153,7 +211,7 @@
                     </div>
                     <p class="mb-0 text-end" style="font-size:11px;color:#94a3b8;">@fasePct%</p>
                 </div>
-                @if (User.Identity.IsAuthenticated)
+                @if (esGestor)
                 {
                     <button type="button" class="btn btn-action delete" title="Eliminar fase"
                             data-bs-toggle="modal" data-bs-target="#modalEliminarFase_@fase.Id">
@@ -170,6 +228,7 @@
             }
             else
             {
+                <div class="table-responsive">
                 <table class="sgio-table mb-0">
                     <thead>
                         <tr>
@@ -178,7 +237,7 @@
                             <th>Fin</th>
                             <th>Costo</th>
                             <th>Estado</th>
-                            @if (User.Identity.IsAuthenticated)
+                            @if (esGestor)
                             {
                                 <th class="text-center">Acciones</th>
                             }
@@ -188,22 +247,41 @@
                         @foreach (var tarea in fase.Tareas)
                         {
                             <tr>
-                                <td class="fw-500">@tarea.Nombre</td>
-                                <td class="text-muted" style="font-size:13px;">@tarea.FechaInicio.ToString("dd/MM/yyyy")</td>
-                                <td class="text-muted" style="font-size:13px;">@tarea.FechaFin.ToString("dd/MM/yyyy")</td>
-                                <td>$@(tarea.Costo?.ToString("N2") ?? "0.00")</td>
-                                <td>
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
-                                        <input type="checkbox" id="chk_@tarea.Id" class="tarea-checkbox"
-                                               data-tarea-id="@tarea.Id" @(tarea.Completada ? "checked" : "") />
-                                        <span class="badge-status @(tarea.Completada ? "complete" : "pending")" id="badge_@tarea.Id">
-                                            @(tarea.Completada ? "Completada" : "Pendiente")
-                                        </span>
-                                    </label>
+                                <td class="fw-500" data-label="Tarea">@tarea.Nombre</td>
+                                <td class="text-muted" style="font-size:13px;" data-label="Inicio">@tarea.FechaInicio.ToString("dd/MM/yyyy")</td>
+                                <td class="text-muted" style="font-size:13px;" data-label="Fin">@tarea.FechaFin.ToString("dd/MM/yyyy")</td>
+                                <td data-label="Costo">$@(tarea.Costo?.ToString("N2") ?? "0.00")</td>
+                                <td data-label="Estado">
+                                    @{
+                                        string estadoTareaClase = tarea.Completada ? "complete" : (tarea.EnProgreso ? "progress" : "pending");
+                                        string estadoTareaTexto = tarea.Completada ? "Completada" : (tarea.EnProgreso ? "En Progreso" : "Pendiente");
+                                    }
+                                    @if (esOperativo)
+                                    {
+                                        <div class="dropdown estado-tarea-dropdown">
+                                            <button type="button" class="badge-status @estadoTareaClase dropdown-toggle border-0"
+                                                    id="badge_@tarea.Id" data-tarea-id="@tarea.Id"
+                                                    data-bs-toggle="dropdown" aria-expanded="false" style="cursor:pointer;">
+                                                @estadoTareaTexto
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-sm">
+                                                <li><a class="dropdown-item estado-tarea-opcion" href="#" data-tarea-id="@tarea.Id" data-columna="pendiente">
+                                                    <span class="badge-status pending">Pendiente</span></a></li>
+                                                <li><a class="dropdown-item estado-tarea-opcion" href="#" data-tarea-id="@tarea.Id" data-columna="progreso">
+                                                    <span class="badge-status progress">En Progreso</span></a></li>
+                                                <li><a class="dropdown-item estado-tarea-opcion" href="#" data-tarea-id="@tarea.Id" data-columna="completada">
+                                                    <span class="badge-status complete">Completada</span></a></li>
+                                            </ul>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-status @estadoTareaClase">@estadoTareaTexto</span>
+                                    }
                                 </td>
-                                @if (User.Identity.IsAuthenticated)
+                                @if (esGestor)
                                 {
-                                    <td class="text-center">
+                                    <td class="text-center" data-label="Acciones">
                                         <button type="button" class="btn btn-action delete eliminar-tarea-btn"
                                                 title="Eliminar tarea"
                                                 data-tarea-id="@tarea.Id"
@@ -218,8 +296,9 @@
                         }
                     </tbody>
                 </table>
+                </div>
             }
-            @if (User.Identity.IsAuthenticated)
+            @if (esGestor)
             {
                 <div class="p-3 border-top">
                     <button type="button" class="btn btn-sm btn-outline-primary agregar-tareas-btn"
@@ -258,7 +337,7 @@
 <!-- ====== HITOS ====== -->
 <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
     <h5 class="mb-0 fw-600">Hitos del Proyecto</h5>
-    @if (User.Identity.IsAuthenticated)
+    @if (esGestor)
     {
         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarHito">
             <i class="bi bi-plus-lg me-1"></i>Agregar Hito
@@ -276,6 +355,7 @@
 else
 {
     <div class="table-card mb-4">
+        <div class="table-responsive">
         <table class="sgio-table mb-0">
             <thead>
                 <tr>
@@ -283,7 +363,7 @@ else
                     <th>Responsable</th>
                     <th>Fecha</th>
                     <th>Estado</th>
-                    @if (User.Identity.IsAuthenticated)
+                    @if (esOperativo)
                     {
                         <th class="text-center">Acciones</th>
                     }
@@ -309,31 +389,45 @@ else
                         _ => "—"
                     };
                     <tr>
-                        <td class="fw-500" style="max-width:260px;">@hito.Descripcion</td>
-                        <td>@(hito.Usuario != null ? $"{hito.Usuario.Nombre} {hito.Usuario.Apellido}" : "—")</td>
-                        <td class="text-muted" style="font-size:13px;">@hito.Fecha.ToString("dd/MM/yyyy")</td>
-                        <td><span class="badge-status @hitoBadge">@hitoLabel</span></td>
-                        @if (User.Identity.IsAuthenticated)
+                        <td class="fw-500" style="max-width:260px;" data-label="Descripción">@hito.Descripcion</td>
+                        <td data-label="Responsable">@(hito.Usuario != null ? $"{hito.Usuario.Nombre} {hito.Usuario.Apellido}" : "—")</td>
+                        <td class="text-muted" style="font-size:13px;" data-label="Fecha">@hito.Fecha.ToString("dd/MM/yyyy")</td>
+                        <td data-label="Estado"><span class="badge-status @hitoBadge">@hitoLabel</span></td>
+                        @if (esOperativo)
                         {
-                            <td class="text-center">
+                            <td class="text-center" data-label="Acciones">
                                 <div class="d-flex gap-1 justify-content-center">
-                                    <button type="button" class="btn btn-action edit editar-hito-btn"
-                                            title="Editar hito"
-                                            data-hito-id="@hito.ID"
-                                            data-descripcion="@hito.Descripcion"
-                                            data-usuario-id="@hito.IdUsuario"
-                                            data-estado-actual="@hito.estado"
-                                            data-fecha="@hito.Fecha.ToString("yyyy-MM-dd")"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalEditarHito">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-action delete"
-                                            title="Eliminar hito"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalEliminarHito_@hito.ID">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    @if (esGestor)
+                                    {
+                                        <button type="button" class="btn btn-action edit editar-hito-btn"
+                                                title="Editar hito"
+                                                data-hito-id="@hito.ID"
+                                                data-descripcion="@hito.Descripcion"
+                                                data-usuario-id="@hito.IdUsuario"
+                                                data-estado-actual="@hito.estado"
+                                                data-fecha="@hito.Fecha.ToString("yyyy-MM-dd")"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalEditarHito">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-action delete"
+                                                title="Eliminar hito"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalEliminarHito_@hito.ID">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-action edit cambiar-estado-hito-btn"
+                                                title="Cambiar estado del hito"
+                                                data-hito-id="@hito.ID"
+                                                data-estado-actual="@hito.estado"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalCambiarEstadoHito">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </button>
+                                    }
                                 </div>
                             </td>
                         }
@@ -364,6 +458,7 @@ else
                 }
             </tbody>
         </table>
+        </div>
     </div>
 }
 
@@ -622,31 +717,73 @@ else
     </div>
 </div>
 
+<!-- ====== MODAL: Cambiar Estado de Hito (Empleado) ====== -->
+<div class="modal fade" id="modalCambiarEstadoHito" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-arrow-repeat me-2"></i>Cambiar Estado del Hito</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="ActualizarEstadoHito" asp-controller="Proyecto" method="post">
+                <input type="hidden" name="hitoId" id="cambiarEstadoHitoId" />
+                <div class="modal-body">
+                    <label class="form-label">Nuevo estado</label>
+                    <select name="estadoId" id="cambiarEstadoHitoSelect" class="form-select">
+                        <option value="1">Completo</option>
+                        <option value="2">Pendiente</option>
+                        <option value="3">En Progreso</option>
+                        <option value="4">Aprobado</option>
+                        <option value="5">Rechazado</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
-// ---- Checkboxes de tareas (guardar sin recargar) ----
-document.querySelectorAll('.tarea-checkbox').forEach(chk => {
-    chk.addEventListener('change', function() {
+// ---- Estado de tareas: menú de 3 opciones (guardar sin recargar) ----
+const estadoTareaInfo = {
+    pendiente: { clase: 'pending', texto: 'Pendiente' },
+    progreso:  { clase: 'progress', texto: 'En Progreso' },
+    completada:{ clase: 'complete', texto: 'Completada' }
+};
+
+document.querySelectorAll('.estado-tarea-opcion').forEach(opcion => {
+    opcion.addEventListener('click', function(e) {
+        e.preventDefault();
         const tareaId = this.dataset.tareaId;
-        const completada = this.checked;
+        const columna = this.dataset.columna;
+        const info = estadoTareaInfo[columna];
         const badge = document.getElementById(`badge_${tareaId}`);
-        if (badge) {
-            badge.textContent = completada ? 'Completada' : 'Pendiente';
-            badge.className = `badge-status ${completada ? 'complete' : 'pending'}`;
+
+        if (badge && info) {
+            badge.textContent = info.texto;
+            badge.className = `badge-status ${info.clase} dropdown-toggle border-0`;
         }
-        const payload = { [tareaId]: completada };
-        fetch('@Url.Action("ActualizarTareas", "Proyecto")', {
+
+        const dropdownInstance = bootstrap.Dropdown.getOrCreateInstance(badge);
+        dropdownInstance.hide();
+
+        fetch('@Url.Action("ActualizarColumnaKanban", "Proyecto")', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).then(r => r.json()).then(data => {
-            if (data.message) {
-                const a = document.getElementById('alertAjax');
-                document.getElementById('alertAjaxMsg').textContent = data.message;
-                a.style.display = '';
-                setTimeout(() => a.style.display = 'none', 2500);
-            }
-        }).catch(console.error);
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `tareaId=${encodeURIComponent(tareaId)}&columna=${encodeURIComponent(columna)}`
+        }).then(r => {
+            if (!r.ok) throw new Error('No se pudo guardar el cambio.');
+            const a = document.getElementById('alertAjax');
+            document.getElementById('alertAjaxMsg').textContent = 'Estado de la tarea actualizado.';
+            a.style.display = '';
+            setTimeout(() => a.style.display = 'none', 2500);
+        }).catch(() => {
+            alert('No se pudo guardar el cambio. Recarga la página e intenta de nuevo.');
+        });
     });
 });
 
@@ -721,6 +858,14 @@ document.querySelectorAll('.editar-hito-btn').forEach(btn => {
         document.getElementById('editarHitoUsuario').value = this.dataset.usuarioId;
         document.getElementById('editarEstadoSelect').value = this.dataset.estadoActual;
         document.getElementById('editarHitoFecha').value = this.dataset.fecha;
+    });
+});
+
+// ---- Cambiar solo el estado del hito (Empleado) ----
+document.querySelectorAll('.cambiar-estado-hito-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('cambiarEstadoHitoId').value = this.dataset.hitoId;
+        document.getElementById('cambiarEstadoHitoSelect').value = this.dataset.estadoActual;
     });
 });
 

@@ -1,0 +1,227 @@
+@model IEnumerable<ProyectoSGIOCore.Models.Proyecto>
+@using ProyectoSGIOCore.ViewModels
+@{
+    ViewBag.Title = "Dashboard Ejecutivo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    decimal totalInvertido = (decimal)ViewBag.TotalInvertido;
+    int totalProyectos = (int)ViewBag.TotalProyectos;
+    int activos = (int)ViewBag.Activos;
+    int completados = (int)ViewBag.Completados;
+    int pendientes = (int)ViewBag.Pendientes;
+    int totalTareas = (int)ViewBag.TotalTareas;
+    int tareasCompletadas = (int)ViewBag.TareasCompletadas;
+    int progresoGeneral = (int)ViewBag.ProgresoGeneral;
+    string estadoDataJson = (string)ViewBag.EstadoDataJson;
+    string costoPorProyectoJson = (string)ViewBag.CostoPorProyectoJson;
+    var proximosHitos = (List<HitoResumenVM>)ViewBag.ProximosHitos;
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-left">
+        <h1 class="page-header-title"><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard Ejecutivo</h1>
+        <p class="page-header-subtitle">Vista consolidada de todos los proyectos de la empresa</p>
+    </div>
+    <div class="page-header-actions">
+        <a asp-action="Proyectos" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-list-ul me-1"></i> Ver Proyectos
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-mini">
+        <div class="stat-mini-icon purple"><i class="bi bi-cash-stack"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">$@totalInvertido.ToString("N0")</div>
+            <div class="stat-mini-label">Total invertido</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon blue"><i class="bi bi-kanban"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@totalProyectos</div>
+            <div class="stat-mini-label">Proyectos totales</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon orange"><i class="bi bi-hourglass-split"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@activos</div>
+            <div class="stat-mini-label">Activos</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon green"><i class="bi bi-check-circle"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@completados</div>
+            <div class="stat-mini-label">Completados</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon red"><i class="bi bi-bar-chart-line"></i></div>
+        <div class="stat-mini-body">
+            <div class="stat-mini-value">@progresoGeneral%</div>
+            <div class="stat-mini-label">Progreso general (@tareasCompletadas/@totalTareas tareas)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-lg-5">
+        <div class="table-card p-4 h-100">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Proyectos por Estado</h6>
+            <div style="position:relative;height:260px;">
+                <canvas id="estadoChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-7">
+        <div class="table-card p-4 h-100">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Costo por Proyecto (top 8)</h6>
+            <div style="position:relative;height:260px;">
+                <canvas id="costoProyectoChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Próximos hitos -->
+<div class="table-card mb-4">
+    <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-600" style="font-size:13px;">Próximos Hitos por Vencer</h6>
+        <span class="text-muted" style="font-size:12px;">@proximosHitos.Count próximos</span>
+    </div>
+    @if (!proximosHitos.Any())
+    {
+        <div class="p-5 text-center text-muted">
+            <i class="bi bi-flag" style="font-size:2.5rem;opacity:.25;"></i>
+            <p class="mb-0 mt-3">No hay hitos pendientes por vencer.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+        <table class="sgio-table mb-0">
+            <thead>
+                <tr>
+                    <th>Hito</th>
+                    <th>Proyecto</th>
+                    <th>Responsable</th>
+                    <th class="text-center">Fecha</th>
+                    <th class="text-center">Días restantes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var h in proximosHitos)
+                {
+                    string urgencia = h.DiasRestantes <= 3 ? "inactive" : h.DiasRestantes <= 10 ? "pending" : "complete";
+                    <tr>
+                        <td class="fw-500" style="max-width:280px;">@h.Descripcion</td>
+                        <td><a asp-action="Dashboard" asp-route-id="@h.ProyectoId" class="text-decoration-none">@h.Proyecto</a></td>
+                        <td class="text-muted">@h.Responsable</td>
+                        <td class="text-center" style="font-size:13px;">@h.Fecha.ToString("dd/MM/yyyy")</td>
+                        <td class="text-center"><span class="badge-status @urgencia">@h.DiasRestantes días</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const estadoData = JSON.parse('@Html.Raw(estadoDataJson ?? "[]")');
+    const costoData  = JSON.parse('@Html.Raw(costoPorProyectoJson ?? "[]")');
+
+    const palette = {
+        blue:   { bg: 'rgba(62,100,255,.2)',    border: '#3e64ff' },
+        green:  { bg: 'rgba(16,185,129,.2)',    border: '#10b981' },
+        amber:  { bg: 'rgba(245,158,11,.2)',    border: '#f59e0b' },
+        red:    { bg: 'rgba(239,68,68,.2)',     border: '#ef4444' },
+        purple: { bg: 'rgba(139,92,246,.2)',    border: '#8b5cf6' },
+    };
+    const colors = [palette.blue, palette.green, palette.amber, palette.purple, palette.red];
+
+    // Proyectos por estado
+    if (estadoData.length) {
+        const total = estadoData.reduce((a, d) => a + d.Count, 0);
+        new Chart(document.getElementById('estadoChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: estadoData.map(d => d.Nombre),
+                datasets: [{
+                    data: estadoData.map(d => d.Count),
+                    backgroundColor: estadoData.map((_, i) => colors[i % colors.length].bg),
+                    borderColor: estadoData.map((_, i) => colors[i % colors.length].border),
+                    borderWidth: 2,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                animation: { animateRotate: true, duration: 700 },
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true } },
+                    tooltip: {
+                        callbacks: {
+                            label(item) {
+                                const pct = total ? Math.round((item.parsed / total) * 100) : 0;
+                                return ` ${item.label}: ${item.parsed} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Costo por proyecto
+    if (costoData.length) {
+        new Chart(document.getElementById('costoProyectoChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: costoData.map(d => d.Nombre),
+                datasets: [{
+                    data: costoData.map(d => d.Costo),
+                    backgroundColor: costoData.map((_, i) => colors[i % colors.length].bg),
+                    borderColor: costoData.map((_, i) => colors[i % colors.length].border),
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    maxBarThickness: 26
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 700 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label(item) {
+                                return ' $' + item.parsed.x.toLocaleString('en-US', { minimumFractionDigits: 2 });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { callback: v => '$' + Number(v).toLocaleString('en-US') },
+                        grid: { color: 'rgba(0,0,0,.05)' }
+                    },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+</script>
+}

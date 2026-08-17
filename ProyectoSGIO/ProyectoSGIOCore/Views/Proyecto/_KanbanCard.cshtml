@@ -1,0 +1,15 @@
+@model ProyectoSGIOCore.Models.Tarea
+@{
+    var fase = ViewData["Fase"] as string;
+}
+<div class="kanban-card" draggable="true" data-tarea-id="@Model.Id">
+    <div class="kanban-card-title">@Model.Nombre</div>
+    <div class="kanban-card-fase"><i class="bi bi-layers me-1"></i>@fase</div>
+    <div class="kanban-card-meta">
+        <span><i class="bi bi-calendar3 me-1"></i>@Model.FechaFin.ToString("dd/MM/yyyy")</span>
+        @if (Model.Costo.HasValue)
+        {
+            <span>$@Model.Costo.Value.ToString("N0")</span>
+        }
+    </div>
+</div>

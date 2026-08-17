@@ -88,19 +88,19 @@
                 {
                     string mes = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(cierre.Mes);
                     <tr>
-                        <td><span class="text-muted">#@cierre.IdCierre</span></td>
-                        <td><strong>@cierre.Anio</strong></td>
-                        <td>@mes</td>
-                        <td>@cierre.FechaCierre.ToString("dd/MM/yyyy")</td>
-                        <td class="text-center text-success fw-600">$@cierre.TotalIngresos.ToString("N2")</td>
-                        <td class="text-center text-danger fw-600">$@cierre.TotalEgresos.ToString("N2")</td>
-                        <td class="text-center">
+                        <td data-label="ID"><span class="text-muted">#@cierre.IdCierre</span></td>
+                        <td data-label="Año"><strong>@cierre.Anio</strong></td>
+                        <td data-label="Mes">@mes</td>
+                        <td data-label="Fecha Cierre">@cierre.FechaCierre.ToString("dd/MM/yyyy")</td>
+                        <td class="text-center text-success fw-600" data-label="Ingresos">$@cierre.TotalIngresos.ToString("N2")</td>
+                        <td class="text-center text-danger fw-600" data-label="Egresos">$@cierre.TotalEgresos.ToString("N2")</td>
+                        <td class="text-center" data-label="Utilidad">
                             <strong class="@(cierre.Utilidad >= 0 ? "text-success" : "text-danger")">
                                 $@cierre.Utilidad.ToString("N2")
                             </strong>
                         </td>
-                        <td class="text-muted">@(cierre.Observaciones ?? "—")</td>
-                        <td class="text-center">
+                        <td class="text-muted" data-label="Observaciones">@(cierre.Observaciones ?? "—")</td>
+                        <td class="text-center" data-label="Acciones">
                             @if (User.Identity.IsAuthenticated)
                             {
                                 <button class="btn-action delete btn-eliminar-cierre"

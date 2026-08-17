@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using ProyectoSGIOCore.Models;
 using ProyectoSGIOCore.Services;
+using ProyectoSGIOCore.Filters;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -16,7 +17,12 @@ if (builder.Environment.IsDevelopment())
 
 // Add services to the container.
 builder.Services.AddSingleton<IUtilitariosModel, UtilitariosModel>();
-builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>();
+builder.Services.AddScoped<IActividadService, ActividadService>();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<RestriccionUsuarioClienteFilter>();
+});
 builder.Services.AddSession();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
