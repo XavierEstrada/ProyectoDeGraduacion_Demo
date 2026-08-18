@@ -1,6 +1,6 @@
 # SGIO — Sistema de Gestión Integral de Obras
 
-Sistema web para la administración de proyectos de construcción. Permite gestionar proyectos, fases, tareas, hitos, inventario, proveedores, empleados y facturas desde una sola plataforma, con tablero Kanban, dashboard ejecutivo, adjuntos de comprobantes, historial de actividad y búsqueda global. Desarrollado como proyecto de graduación y adaptado como demo de portafolio, con control de acceso granular por rol y diseño totalmente responsivo.
+Sistema web para la administración de proyectos de construcción. Permite gestionar proyectos, fases, tareas, hitos, inventario, proveedores, empleados y facturas desde una sola plataforma, con tablero Kanban, dashboard ejecutivo, comentarios y línea de tiempo por hito, flujo de caja proyectado, exportación de reportes a PDF, adjuntos de comprobantes, historial de actividad y búsqueda global. Desarrollado como proyecto de graduación y adaptado como demo de portafolio, con control de acceso granular por rol, diseño totalmente responsivo, pruebas automatizadas e integración continua.
 
 **Demo público:** acceso de solo lectura sin autenticación. Credenciales de administrador disponibles en la pantalla de inicio.
 
@@ -15,6 +15,8 @@ Sistema web para la administración de proyectos de construcción. Permite gesti
 - [Roles y Permisos](#roles-y-permisos)
 - [Modelos de Datos](#modelos-de-datos)
 - [Autenticación y Seguridad](#autenticación-y-seguridad)
+- [Pruebas Automatizadas](#pruebas-automatizadas)
+- [Integración Continua (CI)](#integración-continua-ci)
 - [Despliegue](#despliegue)
 - [Configuración Local](#configuración-local)
 - [Estructura del Proyecto](#estructura-del-proyecto)
@@ -47,6 +49,25 @@ Sistema web para la administración de proyectos de construcción. Permite gesti
 - Tablero por proyecto (`/Proyecto/Kanban/{id}`) con columnas Pendiente / En Progreso / Completada
 - Arrastrar y soltar (HTML5 Drag & Drop nativo, sin librerías externas) para mover tareas entre columnas
 - Cambio de estado también disponible como menú desplegable sobre la tarjeta, con guardado AJAX
+
+### Comentarios en Tareas e Hitos
+- Hilo de comentarios por tarea o por hito, abierto desde un ícono en la fila correspondiente (`GestionarProyecto`)
+- Un solo modal compartido, poblado vía AJAX según la fila que se abra — no se genera un modal por cada tarea/hito
+- Cualquiera con acceso de escritura (Admin/Supervisor/Empleado) puede comentar; solo el autor del comentario o un Administrador puede eliminarlo
+- Usuario (cliente) no tiene acceso a comentarios — está bloqueado tanto por rol como por el filtro de navegación
+
+### Línea de Tiempo de Hitos
+- Vista visual (no tabular) de todos los hitos del proyecto, ordenados cronológicamente, en el Dashboard del proyecto
+- Reutiliza el mismo esquema de 5 estados (Completo / Pendiente / En Progreso / Aprobado / Rechazado) que la tabla de gestión
+- Card con altura fija y scroll interno una vez que hay más de ~5 hitos, para que no crezca indefinidamente
+
+### Flujo de Caja Proyectado
+- Gráfico de barras en el Dashboard del proyecto: "Presupuesto" (suma de costos de todas las tareas, por mes de inicio) vs. "Gasto Real" (mismo cálculo, solo tareas completadas)
+- Permite ver de un vistazo si el gasto real de un mes se está quedando corto o superando lo planeado
+
+### Exportar Reporte a PDF
+- Botón "Exportar PDF" en el Dashboard del proyecto: genera un resumen ejecutivo (progreso, costos, fases, próximos hitos) con **iText7**
+- Pensado para compartir con un cliente sin necesidad de darle acceso al sistema
 
 ### Módulos de Gestión
 - **Inventario:** productos con categoría, cantidad, precio unitario y cálculo automático de precio total
@@ -105,6 +126,9 @@ Sistema web para la administración de proyectos de construcción. Permite gesti
 | Fuente | Poppins | Google Fonts |
 | JSON | Newtonsoft.Json | 13.x |
 | Almacenamiento de archivos | Supabase Storage (REST API) | — |
+| Generación de PDF | iText7 (+ itext7.bouncy-castle-adapter) | 8.0.5 |
+| Pruebas | xUnit + Microsoft.NET.Test.Sdk | 2.9.x |
+| CI | GitHub Actions | — |
 | Contenedor | Docker | — |
 
 ---
@@ -151,6 +175,10 @@ Las migraciones se aplican automáticamente al arrancar la aplicación mediante 
 | Tablero Kanban | `GET /Proyecto/Kanban/{id}` | Público (lectura) |
 | Mover tarea entre columnas del Kanban | `POST /Proyecto/ActualizarColumnaKanban` | Admin, Supervisor, Empleado |
 | Cambiar estado de un hito (vista simplificada) | `POST /Proyecto/ActualizarEstadoHito` | Admin, Supervisor, Empleado |
+| Listar comentarios de una tarea/hito | `GET /Proyecto/ListarComentarios` | Admin, Supervisor, Empleado |
+| Agregar comentario | `POST /Proyecto/AgregarComentario` | Admin, Supervisor, Empleado |
+| Eliminar comentario (autor o Administrador) | `POST /Proyecto/EliminarComentario` | Admin, Supervisor, Empleado |
+| Exportar resumen del proyecto a PDF | `GET /Proyecto/ExportarDashboardPDF/{id}` | Público |
 | Asignar cliente | `POST /Proyecto/AsignarCliente` | Admin, Supervisor |
 | Agregar fase | `POST /Proyecto/AgregarFase` | Admin, Supervisor |
 | Eliminar fase | `POST /Proyecto/EliminarFase` | Admin, Supervisor |
@@ -248,7 +276,10 @@ CierreFinanciero { Id, ... }
 // Auditoría y archivos
 Adjunto          { Id, EntidadTipo, EntidadId, NombreArchivo, RutaStorage, UrlPublica, FechaSubida }
 RegistroActividad { Id, UsuarioNombre, Accion, Entidad, Detalle, Fecha }
+Comentario       { Id, EntidadTipo, EntidadId, UsuarioId, UsuarioNombre, Texto, Fecha }
 ```
+
+`Adjunto` y `Comentario` usan el mismo patrón de asociación polimórfica (`EntidadTipo` + `EntidadId`, sin FK real) para poder vincularse a distintos tipos de entidad ("Tarea", "Hito", "Factura") sin una tabla intermedia por cada combinación.
 
 `*` La contraseña se almacena cifrada con **AES-256** usando la clave configurada en `settings:SecretKey`.
 
@@ -263,6 +294,30 @@ RegistroActividad { Id, UsuarioNombre, Accion, Entidad, Detalle, Fecha }
 - **2FA:** soporte implementado en base de datos (`TwoFA bool`), deshabilitado en el menú de usuario (lógica preservada)
 - **Acceso público:** rutas de solo lectura decoradas con `[AllowAnonymous]`, con guardias en vistas para ocultar acciones
 - **Restricción por rol en navegación:** `Filters/RestriccionUsuarioClienteFilter.cs` limita lo que un Usuario o Empleado autenticado puede visitar, incluso en rutas anónimas (ver [Roles y Permisos](#roles-y-permisos))
+
+---
+
+## Pruebas Automatizadas
+
+El repositorio incluye un proyecto de pruebas separado, `ProyectoSGIOCore.Tests` (xUnit), referenciado en `ProyectoSGIO.sln` junto al proyecto principal. No requiere una base de datos real — todo corre en memoria.
+
+| Archivo | Qué prueba |
+|---|---|
+| `UtilitariosModelTests.cs` | Cifrado AES: que `Encrypt` + `Decrypt` devuelvan el texto original, y que el cifrado nunca sea igual al texto plano |
+| `CostoTotalTests.cs` | Que `Fase.CostoTotal` y `Proyecto.CostoTotal` sumen bien, incluyendo costos nulos, fases vacías y proyectos sin fases |
+| `RestriccionUsuarioClienteFilterTests.cs` | El filtro de RBAC (`RestriccionUsuarioClienteFilter`) en sus escenarios clave: Usuario permitido en Dashboard pero redirigido en GestionarProyecto/Facturas, Empleado permitido en Kanban pero redirigido en AgregarFase, Administrador nunca bloqueado, usuario anónimo nunca bloqueado |
+
+Correrlas localmente:
+```bash
+cd ProyectoSGIO
+dotnet test
+```
+
+---
+
+## Integración Continua (CI)
+
+El workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) corre en cada `push` y Pull Request hacia `main` (además de `workflow_dispatch` manual): clona el repo en una máquina limpia de GitHub Actions, instala .NET 8 y ejecuta `dotnet restore` → `dotnet build` → `dotnet test` sobre `ProyectoSGIO.sln` completo (app + pruebas). No usa secrets ni toca la base de datos real — las pruebas corren en memoria, así que el workflow queda completamente aislado de producción.
 
 ---
 
@@ -367,7 +422,13 @@ docker run -p 8080:8080 \
 ```
 ProyectoDeGraduacion_Demo/
 ├── README.md
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                       # Build + test en cada push/PR a main
+│       └── supabase-keep-alive.yml      # Mantiene activo el free tier de Supabase
 └── ProyectoSGIO/
+    ├── ProyectoSGIO.sln
+    ├── ProyectoSGIOCore.Tests/           # Proyecto de pruebas xUnit (ver Pruebas Automatizadas)
     └── ProyectoSGIOCore/
         ├── Dockerfile
         ├── .dockerignore
@@ -393,6 +454,7 @@ ProyectoDeGraduacion_Demo/
         │   ├── FacturaProveedor.cs / CierreFinanciero.cs
         │   ├── Adjunto.cs                   # Comprobantes en Supabase Storage
         │   ├── RegistroActividad.cs         # Entrada del historial de actividad
+        │   ├── Comentario.cs                # Comentario en una tarea o un hito
         │   └── UtilitariosModel.cs          # Cifrado AES, envío SMTP
         │
         ├── ViewModels/
@@ -408,6 +470,7 @@ ProyectoDeGraduacion_Demo/
         ├── Services/
         │   ├── UtilitariosModel.cs / IUtilitariosModel.cs
         │   ├── ActividadService.cs / IActividadService.cs   # Registro del historial de actividad
+        │   ├── ComentarioService.cs / IComentarioService.cs # Crear/listar/eliminar comentarios
         │   └── SupabaseStorageService.cs / ISupabaseStorageService.cs  # Subida/borrado en Supabase Storage
         │
         ├── Migrations/                      # InitialCreate + migraciones incrementales (PostgreSQL)

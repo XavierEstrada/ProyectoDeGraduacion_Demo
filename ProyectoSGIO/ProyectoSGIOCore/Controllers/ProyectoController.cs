@@ -8,6 +8,11 @@ using ProyectoSGIOCore.ViewModels;
 using ProyectoSGIOCore.Services;
 using Newtonsoft.Json;
 using System.Security.Claims;
+using iText.Kernel.Colors;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Layout.Properties;
 
 namespace ProyectoSGIOCore.Controllers
 {
@@ -20,11 +25,14 @@ namespace ProyectoSGIOCore.Controllers
     {
         private readonly AppDBContext _dbContext;
         private readonly IActividadService _actividadService;
+        private readonly IComentarioService _comentarioService;
+        private static readonly HashSet<string> EntidadesComentario = new(StringComparer.OrdinalIgnoreCase) { "Tarea", "Hito" };
 
-        public ProyectoController(AppDBContext context, IActividadService actividadService)
+        public ProyectoController(AppDBContext context, IActividadService actividadService, IComentarioService comentarioService)
         {
             _dbContext = context;
             _actividadService = actividadService;
+            _comentarioService = comentarioService;
         }
 
         //Proyectos
@@ -45,7 +53,7 @@ namespace ProyectoSGIOCore.Controllers
                 query = query.Where(p => p.IdUsuario == idUsuarioActual);
             }
 
-            var proyectos = await query.ToListAsync();
+            var proyectos = await query.OrderBy(p => p.Id).ToListAsync();
 
             return View(proyectos);
         }
@@ -355,6 +363,21 @@ namespace ProyectoSGIOCore.Controllers
                 })
                 .ToList();
 
+            // Flujo de caja proyectado: presupuesto (todas las tareas) vs. gasto real (tareas completadas),
+            // agrupado por el mes en que cada tarea inicia (Tarea no tiene fecha de finalización real).
+            var todasTareas = proyecto.Fases.SelectMany(f => f.Tareas).ToList();
+            var presupuestoPorMes = todasTareas
+                .GroupBy(t => new { t.FechaInicio.Year, t.FechaInicio.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Monto = g.Sum(t => t.Costo ?? 0) })
+                .OrderBy(g => g.Year).ThenBy(g => g.Month)
+                .ToList();
+            var gastoRealPorMes = todasTareas
+                .Where(t => t.Completada)
+                .GroupBy(t => new { t.FechaInicio.Year, t.FechaInicio.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Monto = g.Sum(t => t.Costo ?? 0) })
+                .OrderBy(g => g.Year).ThenBy(g => g.Month)
+                .ToList();
+
             // Obtener el costo total del proyecto
             var costoTotal = proyecto.CostoTotal;
             // Calcular el progreso total del proyecto
@@ -372,10 +395,124 @@ namespace ProyectoSGIOCore.Controllers
             ViewBag.HitoDataJson = JsonConvert.SerializeObject(hitoData);
             ViewBag.TareaDataJson = JsonConvert.SerializeObject(tareaData);
             ViewBag.FaseDataJson = JsonConvert.SerializeObject(faseData);
+            ViewBag.PresupuestoPorMesJson = JsonConvert.SerializeObject(presupuestoPorMes);
+            ViewBag.GastoRealPorMesJson = JsonConvert.SerializeObject(gastoRealPorMes);
             ViewBag.CostoTotal = costoTotal;
             ViewBag.ProgresoGeneral = progresoGeneral;
 
             return View(proyecto);
+        }
+
+        // Exportar un resumen ejecutivo del dashboard del proyecto en PDF (iText7, sin dependencias nativas)
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<IActionResult> ExportarDashboardPDF(int id)
+        {
+            var proyecto = await _dbContext.Proyectos
+                .Include(p => p.Fases)
+                .ThenInclude(f => f.Tareas)
+                .Include(p => p.Hitos)
+                .ThenInclude(h => h.Usuario)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (proyecto == null) return NotFound();
+
+            if (User.Identity?.IsAuthenticated == true && User.IsInRole("Usuario"))
+            {
+                var idUsuarioActual = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                if (proyecto.IdUsuario != idUsuarioActual)
+                {
+                    return RedirectToAction("Proyectos");
+                }
+            }
+
+            var totalTareas = proyecto.Fases.SelectMany(f => f.Tareas).Count();
+            var tareasCompletadas = proyecto.Fases.SelectMany(f => f.Tareas).Count(t => t.Completada);
+            var progresoGeneral = totalTareas == 0 ? 0 : (tareasCompletadas * 100 / totalTareas);
+            var costoTotal = proyecto.CostoTotal;
+
+            var hoy = DateTime.Today;
+            var proximosHitos = proyecto.Hitos
+                .Where(h => h.estado != 1 && h.estado != 4 && h.Fecha >= hoy)
+                .OrderBy(h => h.Fecha)
+                .Take(5)
+                .ToList();
+
+            using var stream = new MemoryStream();
+            using (var writer = new PdfWriter(stream))
+            {
+                writer.SetCloseStream(false);
+                using var pdf = new PdfDocument(writer);
+                var document = new Document(pdf);
+
+                document.Add(new Paragraph(proyecto.Nombre).SetFontSize(20).SetBold());
+                document.Add(new Paragraph($"Estado: {proyecto.Estado}  ·  Creado el {proyecto.FechaCreacion:dd/MM/yyyy}")
+                    .SetFontSize(11).SetFontColor(ColorConstants.GRAY));
+                document.Add(new Paragraph($"Reporte generado el {DateTime.Now:dd/MM/yyyy HH:mm}")
+                    .SetFontSize(9).SetFontColor(ColorConstants.GRAY).SetMarginBottom(20));
+
+                var resumen = new Table(UnitValue.CreatePercentArray(new float[] { 1, 1, 1 })).UseAllAvailableWidth();
+                resumen.AddCell(CeldaResumenPdf("Progreso General", $"{progresoGeneral}%"));
+                resumen.AddCell(CeldaResumenPdf("Tareas Completadas", $"{tareasCompletadas} / {totalTareas}"));
+                resumen.AddCell(CeldaResumenPdf("Costo Total", $"${costoTotal:N2}"));
+                document.Add(resumen);
+
+                document.Add(new Paragraph("Fases").SetFontSize(14).SetBold().SetMarginTop(20));
+                if (!proyecto.Fases.Any())
+                {
+                    document.Add(new Paragraph("Este proyecto no tiene fases todavía.").SetFontColor(ColorConstants.GRAY));
+                }
+                else
+                {
+                    var fasesTable = new Table(UnitValue.CreatePercentArray(new float[] { 3, 1, 1, 1 })).UseAllAvailableWidth();
+                    fasesTable.AddHeaderCell(CeldaEncabezadoPdf("Fase"));
+                    fasesTable.AddHeaderCell(CeldaEncabezadoPdf("Tareas"));
+                    fasesTable.AddHeaderCell(CeldaEncabezadoPdf("Completadas"));
+                    fasesTable.AddHeaderCell(CeldaEncabezadoPdf("Costo"));
+                    foreach (var fase in proyecto.Fases)
+                    {
+                        fasesTable.AddCell(new Cell().Add(new Paragraph(fase.Nombre)));
+                        fasesTable.AddCell(new Cell().Add(new Paragraph(fase.Tareas.Count.ToString())));
+                        fasesTable.AddCell(new Cell().Add(new Paragraph(fase.Tareas.Count(t => t.Completada).ToString())));
+                        fasesTable.AddCell(new Cell().Add(new Paragraph($"${fase.CostoTotal:N2}")));
+                    }
+                    document.Add(fasesTable);
+                }
+
+                document.Add(new Paragraph("Próximos Hitos").SetFontSize(14).SetBold().SetMarginTop(20));
+                if (!proximosHitos.Any())
+                {
+                    document.Add(new Paragraph("No hay hitos próximos pendientes.").SetFontColor(ColorConstants.GRAY));
+                }
+                else
+                {
+                    foreach (var hito in proximosHitos)
+                    {
+                        var responsable = hito.Usuario != null ? $"{hito.Usuario.Nombre} {hito.Usuario.Apellido}" : "Sin asignar";
+                        document.Add(new Paragraph($"• {hito.Descripcion} — {hito.Fecha:dd/MM/yyyy} ({responsable})").SetFontSize(11));
+                    }
+                }
+
+                document.Close();
+            }
+
+            var nombreArchivo = $"Dashboard_{proyecto.Nombre.Replace(" ", "_")}.pdf";
+            return File(stream.ToArray(), "application/pdf", nombreArchivo);
+        }
+
+        private static Cell CeldaResumenPdf(string titulo, string valor)
+        {
+            var cell = new Cell().SetBorder(iText.Layout.Borders.Border.NO_BORDER).SetPadding(6);
+            cell.Add(new Paragraph(titulo).SetFontSize(9).SetFontColor(ColorConstants.GRAY).SetMarginBottom(2));
+            cell.Add(new Paragraph(valor).SetFontSize(14).SetBold());
+            return cell;
+        }
+
+        private static Cell CeldaEncabezadoPdf(string texto)
+        {
+            return new Cell()
+                .Add(new Paragraph(texto).SetFontSize(10).SetBold())
+                .SetBackgroundColor(new DeviceRgb(248, 250, 252));
         }
 
         // Dashboard agregado de todos los proyectos
@@ -899,6 +1036,72 @@ namespace ProyectoSGIOCore.Controllers
 
             TempData["MensajeExito"] = "Estado del hito actualizado correctamente.";
             return RedirectToAction("GestionarProyecto", new { id = hito.ProyectoId });
+        }
+
+        // Comentarios en tareas e hitos
+        [HttpGet]
+        public async Task<IActionResult> ListarComentarios(string entidadTipo, int entidadId)
+        {
+            if (!EntidadesComentario.Contains(entidadTipo ?? ""))
+            {
+                return BadRequest();
+            }
+
+            var comentarios = await _comentarioService.ListarAsync(entidadTipo, entidadId);
+            var usuarioActualId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var esAdministrador = User.IsInRole("Administrador");
+
+            return Json(comentarios.Select(c => new
+            {
+                c.Id,
+                c.UsuarioNombre,
+                c.Texto,
+                Fecha = c.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
+                puedeEliminar = esAdministrador || c.UsuarioId == usuarioActualId
+            }));
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor, Empleado")]
+        public async Task<IActionResult> AgregarComentario(string entidadTipo, int entidadId, string texto)
+        {
+            if (!EntidadesComentario.Contains(entidadTipo ?? ""))
+            {
+                return Json(new { exito = false, mensaje = "Tipo de entidad no válido." });
+            }
+
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return Json(new { exito = false, mensaje = "El comentario no puede estar vacío." });
+            }
+
+            var comentario = await _comentarioService.AgregarAsync(User, entidadTipo, entidadId, texto.Trim());
+
+            return Json(new
+            {
+                exito = true,
+                comentario = new
+                {
+                    comentario.Id,
+                    comentario.UsuarioNombre,
+                    comentario.Texto,
+                    Fecha = comentario.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
+                    puedeEliminar = true
+                }
+            });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrador, Supervisor, Empleado")]
+        public async Task<IActionResult> EliminarComentario(int comentarioId)
+        {
+            var exito = await _comentarioService.EliminarAsync(comentarioId, User);
+            if (!exito)
+            {
+                return Json(new { exito = false, mensaje = "No se pudo eliminar el comentario." });
+            }
+
+            return Json(new { exito = true });
         }
 
         //Guardar Cambios

@@ -6,6 +6,8 @@
     var hitoDataJson   = (string)ViewBag.HitoDataJson;
     var tareaDataJson  = (string)ViewBag.TareaDataJson;
     var faseDataJson   = (string)ViewBag.FaseDataJson;
+    var presupuestoPorMesJson = (string)ViewBag.PresupuestoPorMesJson;
+    var gastoRealPorMesJson   = (string)ViewBag.GastoRealPorMesJson;
     int progresoGeneral = (int)ViewBag.ProgresoGeneral;
     decimal costoTotal  = (decimal)ViewBag.CostoTotal;
 
@@ -13,7 +15,34 @@
     int tareasOk    = Model.Fases.SelectMany(f => f.Tareas).Count(t => t.Completada);
     int totalHitos  = Model.Hitos.Count;
     int hitosCompletos = Model.Hitos.Count(h => h.estado == 1 || h.estado == 4);
+
+    string hitoTimelineClase(int estado) => estado switch {
+        1 => "complete", 2 => "pending", 3 => "progress", 4 => "complete", 5 => "inactive", _ => "pending"
+    };
+    string hitoTimelineLabel(int estado) => estado switch {
+        1 => "Completo", 2 => "Pendiente", 3 => "En Progreso", 4 => "Aprobado", 5 => "Rechazado", _ => "—"
+    };
 }
+
+<style>
+    .hito-timeline {
+        position: relative; padding-left: 26px;
+        max-height: 300px; overflow-y: auto; padding-right: 6px;
+    }
+    .hito-timeline::before {
+        content: ''; position: absolute; left: 8px; top: 4px; bottom: 4px; width: 2px; background: #e2e8f0;
+    }
+    .hito-timeline-item { position: relative; padding-bottom: 18px; }
+    .hito-timeline-item:last-child { padding-bottom: 0; }
+    .hito-timeline-dot {
+        position: absolute; left: -26px; top: 3px; width: 14px; height: 14px; border-radius: 50%;
+        border: 2px solid #fff; box-shadow: 0 0 0 2px currentColor;
+    }
+    .hito-timeline-dot.complete { background: #10b981; color: #10b981; }
+    .hito-timeline-dot.progress { background: #3e64ff; color: #3e64ff; }
+    .hito-timeline-dot.pending  { background: #f59e0b; color: #f59e0b; }
+    .hito-timeline-dot.inactive { background: #94a3b8; color: #94a3b8; }
+</style>
 
 <!-- Page Header -->
 <div class="page-header">
@@ -22,6 +51,9 @@
         <p class="page-subtitle">Dashboard · Creado el @Model.FechaCreacion.ToString("dd/MM/yyyy")</p>
     </div>
     <div class="d-flex gap-2">
+        <a asp-action="ExportarDashboardPDF" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+        </a>
         @if (!User.IsInRole("Usuario"))
         {
             <a asp-action="GestionarProyecto" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
@@ -144,6 +176,45 @@
     </div>
 </div>
 
+<!-- Línea de tiempo de hitos + Flujo de caja proyectado -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-lg-6">
+        <div class="table-card p-4 h-100">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Línea de Tiempo de Hitos</h6>
+            @if (!Model.Hitos.Any())
+            {
+                <p class="text-muted mb-0" style="font-size:13px;">No hay hitos registrados para este proyecto.</p>
+            }
+            else
+            {
+                <div class="hito-timeline">
+                    @foreach (var hito in Model.Hitos.OrderBy(h => h.Fecha))
+                    {
+                        <div class="hito-timeline-item">
+                            <div class="hito-timeline-dot @hitoTimelineClase(hito.estado)"></div>
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <strong style="font-size:13px;">@hito.Descripcion</strong>
+                                <span class="badge-status @hitoTimelineClase(hito.estado)" style="flex-shrink:0;">@hitoTimelineLabel(hito.estado)</span>
+                            </div>
+                            <p class="text-muted mb-0" style="font-size:12px;">
+                                @hito.Fecha.ToString("dd/MM/yyyy") · @(hito.Usuario != null ? $"{hito.Usuario.Nombre} {hito.Usuario.Apellido}" : "Sin asignar")
+                            </p>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="table-card p-4 h-100">
+            <h6 class="mb-3 fw-600" style="font-size:13px;">Flujo de Caja Proyectado</h6>
+            <div style="position:relative;height:260px;">
+                <canvas id="flujoCajaChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Detalle de fases -->
 <div class="table-card mb-4">
     <div class="p-4 border-bottom">
@@ -193,6 +264,8 @@
     const hitoData  = JSON.parse('@Html.Raw(hitoDataJson ?? "[]")');
     const tareaData = JSON.parse('@Html.Raw(tareaDataJson ?? "[]")');
     const faseData  = JSON.parse('@Html.Raw(faseDataJson ?? "[]")');
+    const presupuestoPorMes = JSON.parse('@Html.Raw(presupuestoPorMesJson ?? "[]")');
+    const gastoRealPorMes   = JSON.parse('@Html.Raw(gastoRealPorMesJson ?? "[]")');
 
     const palette = {
         blue:   { bg: 'rgba(62,100,255,.2)',    border: '#3e64ff' },
@@ -386,6 +459,64 @@
                         grid: { color: 'rgba(0,0,0,.05)' }
                     },
                     y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Flujo de caja proyectado: presupuesto (todas las tareas) vs. gasto real (tareas completadas)
+    if (presupuestoPorMes.length || gastoRealPorMes.length) {
+        const claveMes = d => `${d.Year}-${String(d.Month).padStart(2, '0')}`;
+        const etiquetaMes = d => new Date(d.Year, d.Month - 1, 1).toLocaleDateString('es-CR', { month: 'short', year: 'numeric' });
+
+        const claves = Array.from(new Set([...presupuestoPorMes.map(claveMes), ...gastoRealPorMes.map(claveMes)])).sort();
+        const mapaPresupuesto = new Map(presupuestoPorMes.map(d => [claveMes(d), d.Monto]));
+        const mapaGasto = new Map(gastoRealPorMes.map(d => [claveMes(d), d.Monto]));
+        const mapaEtiqueta = new Map([...presupuestoPorMes, ...gastoRealPorMes].map(d => [claveMes(d), etiquetaMes(d)]));
+
+        new Chart(document.getElementById('flujoCajaChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: claves.map(k => mapaEtiqueta.get(k)),
+                datasets: [
+                    {
+                        label: 'Presupuesto',
+                        data: claves.map(k => mapaPresupuesto.get(k) || 0),
+                        backgroundColor: palette.blue.bg,
+                        borderColor: palette.blue.border,
+                        borderWidth: 2,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Gasto Real',
+                        data: claves.map(k => mapaGasto.get(k) || 0),
+                        backgroundColor: palette.green.bg,
+                        borderColor: palette.green.border,
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 700 },
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 }, usePointStyle: true } },
+                    tooltip: {
+                        callbacks: {
+                            label(item) {
+                                return ` ${item.dataset.label}: $${item.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        ticks: { callback: v => '$' + Number(v).toLocaleString('en-US') },
+                        grid: { color: 'rgba(0,0,0,.05)' }
+                    }
                 }
             }
         });

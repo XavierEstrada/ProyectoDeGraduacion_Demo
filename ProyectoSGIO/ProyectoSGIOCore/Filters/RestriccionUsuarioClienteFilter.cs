@@ -22,13 +22,15 @@ namespace ProyectoSGIOCore.Filters
 
         private static readonly HashSet<string> AccionesProyectoUsuario = new(StringComparer.OrdinalIgnoreCase)
         {
-            "Proyectos", "Dashboard"
+            "Proyectos", "Dashboard", "ExportarDashboardPDF"
         };
 
         private static readonly HashSet<string> AccionesProyectoEmpleado = new(StringComparer.OrdinalIgnoreCase)
         {
             "Proyectos", "Dashboard", "GestionarProyecto", "Kanban", "ObtenerFase",
-            "ActualizarColumnaKanban", "ActualizarEstadoHito"
+            "ActualizarColumnaKanban", "ActualizarEstadoHito",
+            "ListarComentarios", "AgregarComentario", "EliminarComentario",
+            "ExportarDashboardPDF"
         };
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)

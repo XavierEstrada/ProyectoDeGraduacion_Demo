@@ -237,7 +237,7 @@
                             <th>Fin</th>
                             <th>Costo</th>
                             <th>Estado</th>
-                            @if (esGestor)
+                            @if (esOperativo)
                             {
                                 <th class="text-center">Acciones</th>
                             }
@@ -279,17 +279,29 @@
                                         <span class="badge-status @estadoTareaClase">@estadoTareaTexto</span>
                                     }
                                 </td>
-                                @if (esGestor)
+                                @if (esOperativo)
                                 {
                                     <td class="text-center" data-label="Acciones">
-                                        <button type="button" class="btn btn-action delete eliminar-tarea-btn"
-                                                title="Eliminar tarea"
-                                                data-tarea-id="@tarea.Id"
-                                                data-tarea-nombre="@tarea.Nombre"
+                                        <button type="button" class="btn-action view btn-comentarios me-1"
+                                                title="Comentarios"
+                                                data-entidad-tipo="Tarea"
+                                                data-entidad-id="@tarea.Id"
+                                                data-entidad-nombre="@tarea.Nombre"
                                                 data-bs-toggle="modal"
-                                                data-bs-target="#modalEliminarTarea">
-                                            <i class="bi bi-trash"></i>
+                                                data-bs-target="#modalComentarios">
+                                            <i class="bi bi-chat-left-text"></i>
                                         </button>
+                                        @if (esGestor)
+                                        {
+                                            <button type="button" class="btn-action delete eliminar-tarea-btn"
+                                                    title="Eliminar tarea"
+                                                    data-tarea-id="@tarea.Id"
+                                                    data-tarea-nombre="@tarea.Nombre"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalEliminarTarea">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
                                     </td>
                                 }
                             </tr>
@@ -397,6 +409,15 @@ else
                         {
                             <td class="text-center" data-label="Acciones">
                                 <div class="d-flex gap-1 justify-content-center">
+                                    <button type="button" class="btn-action view btn-comentarios"
+                                            title="Comentarios"
+                                            data-entidad-tipo="Hito"
+                                            data-entidad-id="@hito.ID"
+                                            data-entidad-nombre="@hito.Descripcion"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalComentarios">
+                                        <i class="bi bi-chat-left-text"></i>
+                                    </button>
                                     @if (esGestor)
                                     {
                                         <button type="button" class="btn btn-action edit editar-hito-btn"
@@ -746,6 +767,30 @@ else
     </div>
 </div>
 
+<!-- ====== MODAL: Comentarios (Tarea/Hito) ====== -->
+<div class="modal fade" id="modalComentarios" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-chat-left-text me-2"></i>Comentarios — <span id="comentariosEntidadNombre"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="comentariosLista" style="max-height:320px;overflow-y:auto;"></div>
+                <hr />
+                <form id="formAgregarComentario">
+                    <input type="hidden" id="comentarioEntidadTipo" />
+                    <input type="hidden" id="comentarioEntidadId" />
+                    <div class="d-flex gap-2 align-items-end">
+                        <textarea id="inputComentarioTexto" class="form-control" rows="2" placeholder="Escribe un comentario..." required></textarea>
+                        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-send"></i></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
 // ---- Estado de tareas: menú de 3 opciones (guardar sin recargar) ----
@@ -915,6 +960,95 @@ document.querySelectorAll('.cambiar-estado-hito-btn').forEach(btn => {
             if (item && hiddenId && item.dataset.id !== hiddenId.value) item.style.background = '';
         });
     }
+})();
+
+// ---- Comentarios en tareas/hitos ----
+(function() {
+    const lista = document.getElementById('comentariosLista');
+    const form = document.getElementById('formAgregarComentario');
+    const inputTexto = document.getElementById('inputComentarioTexto');
+    const inputTipo = document.getElementById('comentarioEntidadTipo');
+    const inputId = document.getElementById('comentarioEntidadId');
+    const tituloNombre = document.getElementById('comentariosEntidadNombre');
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str ?? '';
+        return div.innerHTML;
+    }
+
+    function renderComentarios(comentarios) {
+        if (!comentarios.length) {
+            lista.innerHTML = '<p class="text-muted mb-0" style="font-size:13px;">Todavía no hay comentarios.</p>';
+            return;
+        }
+        lista.innerHTML = comentarios.map(c => `
+            <div class="comentario-item" style="padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong style="font-size:13px;">${escapeHtml(c.usuarioNombre)}</strong>
+                        <span class="text-muted" style="font-size:11px;margin-left:6px;">${c.fecha}</span>
+                    </div>
+                    ${c.puedeEliminar ? `<button type="button" class="btn-close eliminar-comentario-btn" data-id="${c.id}" style="font-size:10px;" title="Eliminar"></button>` : ''}
+                </div>
+                <p class="mb-0" style="font-size:13.5px;">${escapeHtml(c.texto)}</p>
+            </div>
+        `).join('');
+    }
+
+    async function cargarComentarios() {
+        lista.innerHTML = '<p class="text-muted mb-0" style="font-size:13px;">Cargando...</p>';
+        try {
+            const res = await fetch(`/Proyecto/ListarComentarios?entidadTipo=${encodeURIComponent(inputTipo.value)}&entidadId=${encodeURIComponent(inputId.value)}`);
+            if (!res.ok) throw new Error();
+            renderComentarios(await res.json());
+        } catch {
+            lista.innerHTML = '<p class="text-danger mb-0" style="font-size:13px;">No se pudieron cargar los comentarios.</p>';
+        }
+    }
+
+    document.querySelectorAll('.btn-comentarios').forEach(btn => {
+        btn.addEventListener('click', function() {
+            inputTipo.value = this.dataset.entidadTipo;
+            inputId.value = this.dataset.entidadId;
+            tituloNombre.textContent = this.dataset.entidadNombre;
+            inputTexto.value = '';
+            cargarComentarios();
+        });
+    });
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const texto = inputTexto.value.trim();
+        if (!texto) return;
+        try {
+            const res = await fetch('/Proyecto/AgregarComentario', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `entidadTipo=${encodeURIComponent(inputTipo.value)}&entidadId=${encodeURIComponent(inputId.value)}&texto=${encodeURIComponent(texto)}`
+            });
+            const result = await res.json();
+            if (result.exito) {
+                inputTexto.value = '';
+                cargarComentarios();
+            }
+        } catch { }
+    });
+
+    lista.addEventListener('click', async function(e) {
+        const btn = e.target.closest('.eliminar-comentario-btn');
+        if (!btn) return;
+        if (!confirm('¿Eliminar este comentario?')) return;
+        try {
+            const res = await fetch('/Proyecto/EliminarComentario', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `comentarioId=${encodeURIComponent(btn.dataset.id)}`
+            });
+            const result = await res.json();
+            if (result.exito) cargarComentarios();
+        } catch { }
+    });
 })();
 </script>
 }

@@ -178,7 +178,7 @@
             $("#proyectosTable").DataTable({
                 language: { url: "//cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json" },
                 pageLength: 10,
-                order: [[1, "desc"]]
+                order: [] // Respeta el orden que ya viene del servidor (Id ascendente); el usuario puede reordenar haciendo clic en cualquier columna.
             });
         });
     </script>

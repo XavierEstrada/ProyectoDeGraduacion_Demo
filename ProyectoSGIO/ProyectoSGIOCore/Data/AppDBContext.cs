@@ -23,6 +23,7 @@ namespace ProyectoSGIOCore.Data
         public DbSet<CierreFinanciero> CierresFinancieros { get; set; }
         public DbSet<Adjunto> Adjuntos { get; set; }
         public DbSet<RegistroActividad> RegistrosActividad { get; set; }
+        public DbSet<Comentario> Comentarios { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

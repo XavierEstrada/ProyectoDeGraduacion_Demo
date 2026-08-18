@@ -19,6 +19,7 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddSingleton<IUtilitariosModel, UtilitariosModel>();
 builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>();
 builder.Services.AddScoped<IActividadService, ActividadService>();
+builder.Services.AddScoped<IComentarioService, ComentarioService>();
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<RestriccionUsuarioClienteFilter>();
